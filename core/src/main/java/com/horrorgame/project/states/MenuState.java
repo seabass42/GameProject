@@ -18,6 +18,7 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.horrorgame.project.HorrorMain;
 
+import java.util.concurrent.TimeUnit;
 
 
 public class MenuState extends State {
@@ -28,7 +29,7 @@ public class MenuState extends State {
     private TextButton playButton, exitButton, creditsButton;
     private Rectangle textBox;
     private ShapeRenderer shapeRenderer;
-    private Label exitWarning;
+    private Label title;
 
     public MenuState(GameStateManager gsm){
         super(gsm); //Initialize background and ui skin
@@ -41,6 +42,9 @@ public class MenuState extends State {
         table = new Table();    //Set up table onto stage
         table.setPosition(300,300);
         stage.addActor(table);
+        title = new Label(HorrorMain.TITLE, skin);
+        title.setPosition(HorrorMain.WIDTH, HorrorMain.HEIGHT, Align.center);
+        stage.addActor(title);
 
         playButton = new TextButton("Play",skin);   //Add menu buttons
         exitButton = new TextButton("Exit", skin);
@@ -53,22 +57,8 @@ public class MenuState extends State {
         table.add(exitButton);
         //table.setDebug(true);
 
-        playButton.addListener(new ChangeListener(){
-            @Override
-            public void changed(ChangeEvent event, Actor actor){
-                System.out.println("Button Works!");
-                gsm.set(new GameState(gsm));
-            }
-        });
-        exitButton.addListener(new ChangeListener(){
-            @Override
-            public void changed(ChangeEvent event, Actor actor){
-                table.reset();
-                exitWarning = new Label("You can't hide forever.", skin);
-                
-                Gdx.app.exit();
-            }
-        });
+        onChange(playButton, () -> gsm.set(new GameState(gsm))); // Buttons made functional
+        onChange(exitButton, () -> Gdx.app.exit());
     }
 
     @Override
@@ -95,5 +85,14 @@ public class MenuState extends State {
     @Override
     public void dispose() {
 
+    }
+
+    public static void onChange(Actor actor, Runnable runnable){ // Method for button behavior
+        actor.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor){
+                runnable.run();
+            }
+        });
     }
 }
