@@ -56,19 +56,18 @@ public class MenuState extends State {
         table.row();
         table.add(exitButton);
         //table.setDebug(true);
-
-        onChange(playButton, () -> gsm.set(new GameState(gsm))); // Buttons made functional
-        onChange(exitButton, () -> Gdx.app.exit());
     }
 
     @Override
     protected void handleInput() {
-
+        onChange(playButton, () -> gsm.set(new GameState(gsm))); // Buttons made functional
+        onChange(exitButton, () -> Gdx.app.exit());
+        dispose();
     }
 
     @Override
     public void update(float dt) {
-
+        handleInput();
         stage.getViewport().update(HorrorMain.WIDTH, HorrorMain.HEIGHT, true);
     }
 
