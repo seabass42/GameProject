@@ -4,14 +4,21 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.horrorgame.project.HorrorMain;
 
 public class GameState extends State{
     private Texture background;
+    private Texture tileset;
+    private TextureRegion[][] tiles;
+    private int tileSize;
 
     public GameState(GameStateManager gsm){
         super(gsm);
         background = new Texture("testBackground.png");
+        tileset = new Texture("TileAssets/Tileset.png");
+        tileSize = 16;
+        tiles = TextureRegion.split(tileset, tileSize, tileSize);
     }
     @Override
     protected void handleInput() {
@@ -27,6 +34,7 @@ public class GameState extends State{
     public void render(SpriteBatch sb) {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         sb.begin();
+        sb.draw(tiles[1][3],100,100);
         //sb.draw(background,0,0, HorrorMain.WIDTH,HorrorMain.HEIGHT/2);
         sb.end();
     }
