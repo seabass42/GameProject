@@ -14,19 +14,12 @@ import com.horrorgame.project.sprites.Player;
 
 public class GameState extends State{
     private Player player;
-    public final int tileSize = 32;
     private SpriteBatch batch;
-    private TiledMap map;
-    private IsometricTiledMapRenderer renderer;
     private OrthographicCamera camera;
 
 
     public GameState(GameStateManager gsm){
         super(gsm);
-
-        map = new TmxMapLoader().load("tiles/map.tmx");
-
-        renderer = new IsometricTiledMapRenderer(map);
 
         player = new Player(0,0);
         Gdx.input.setInputProcessor(player);
@@ -51,12 +44,10 @@ public class GameState extends State{
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         // Update camera to follow player (optional)
-        camera.position.set(player.getPositionX(), player.getPositionY(), 0);
+        //camera.position.set(player.getPositionX(), player.getPositionY(), 0);
         camera.update();
 
         // --- Draw the tiled map ---
-        renderer.setView(camera);
-        renderer.render();
 
         // --- Draw player and other sprites ---
         sb.setProjectionMatrix(camera.combined);
