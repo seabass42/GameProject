@@ -23,7 +23,7 @@ public class MapDrawer {
                 int tileIndex = map[rows][col];
                 int mapRow = tileIndex / tilesPerRow;
                 int mapCol = tileIndex % tilesPerRow;
-                sb.draw
+               // sb.draw
             }
         }
     }
