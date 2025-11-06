@@ -6,6 +6,8 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.horrorgame.project.HorrorMain;
+import com.horrorgame.project.Tiles.MapData;
+import com.horrorgame.project.Tiles.MapDrawer;
 
 public class GameState extends State{
     private Texture background;
@@ -34,8 +36,10 @@ public class GameState extends State{
     public void render(SpriteBatch sb) {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         sb.begin();
-        sb.draw(tiles[1][3],100,100);
         //sb.draw(background,0,0, HorrorMain.WIDTH,HorrorMain.HEIGHT/2);
+        MapDrawer mapDrawer = new MapDrawer(MapData.gameStateMap);
+        mapDrawer.render(sb);
+
         sb.end();
     }
 

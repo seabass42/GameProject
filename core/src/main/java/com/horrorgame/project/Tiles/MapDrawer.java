@@ -1,8 +1,13 @@
+/*
+    MapDrawer is designed to fully render any given 2D array of integers that
+    reference tiles in Tileset.png
+ */
 package com.horrorgame.project.Tiles;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.horrorgame.project.HorrorMain;
 
 public class MapDrawer {
     private int[][] map;
@@ -11,19 +16,26 @@ public class MapDrawer {
     private int tileSize, tilesPerRow;
 
     public MapDrawer(int[][] map){
-        this.map = map;
+        this.map = map;     // map from state class
         tileSize = 16;
         tileset = new Texture("TileAssets/Tileset.png");
-        tiles = TextureRegion.split(tileset, tileSize, tileSize);
-        tilesPerRow = 20;
+        tiles = TextureRegion.split(tileset, tileSize, tileSize);   // array of tiles used for maps
+        tilesPerRow = 20; // tiles per row in Tileset.png
     }
     public void render(SpriteBatch sb){
-        for (int rows = 0; rows < map[0].length; rows++){
+
+        for (int rows = 0; rows < map.length; rows++){
             for (int col = 0; col < map[0].length; col++){
-                int tileIndex = map[rows][col];
-                int mapRow = tileIndex / tilesPerRow;
+                int tileIndex = map[rows][col];     //  Get the key for which tile is to be rendered
+                int mapRow = tileIndex / tilesPerRow;   //  Translate key into 2D array reference
                 int mapCol = tileIndex % tilesPerRow;
-               // sb.draw
+
+                float x = tileSize * col;   // Tile rendered along the x-axis
+                /*  2D arrays go from top left down, while LibGDX's draw() starts at bottom left,
+                    so the y coordinate of the tile must be flipped to avoid an inverted map
+                    */
+                float y = HorrorMain.HEIGHT - (rows * tileSize);
+                sb.draw(tiles[mapRow][mapCol], x, y);
             }
         }
     }

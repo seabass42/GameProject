@@ -2,7 +2,10 @@
 6-8, 26-28, 46-48 = carpet
 13-15 = bricks
 16-17 = water
+25 = light_plank
+26-27 = quad_seastone
+28 = scale_stone
 46-48 = water_along_wall
-50-52 = quad_seastone
-23-24 = dark_oak_plank
+50-52 = quad_seastone2
+23-24 = grass
 
