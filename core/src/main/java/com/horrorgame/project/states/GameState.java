@@ -2,16 +2,38 @@ package com.horrorgame.project.states;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.maps.tiled.TiledMap;
+import com.badlogic.gdx.maps.tiled.TmxMapLoader;
+import com.badlogic.gdx.maps.tiled.renderers.IsometricTiledMapRenderer;
 import com.horrorgame.project.HorrorMain;
+import com.horrorgame.project.sprites.Player;
 
 public class GameState extends State{
-    private Texture background;
+    private Player player;
+    public final int tileSize = 32;
+    private SpriteBatch batch;
+    private TiledMap map;
+    private IsometricTiledMapRenderer renderer;
+    private OrthographicCamera camera;
+
 
     public GameState(GameStateManager gsm){
         super(gsm);
-        background = new Texture("testBackground.png");
+
+        map = new TmxMapLoader().load("tiles/map.tmx");
+
+        renderer = new IsometricTiledMapRenderer(map);
+
+        player = new Player(0,0);
+        Gdx.input.setInputProcessor(player);
+        camera = new OrthographicCamera();
+        camera.viewportWidth = Gdx.graphics.getWidth()/2;
+        camera.viewportHeight = Gdx.graphics.getHeight()/2;
+
     }
     @Override
     protected void handleInput() {
@@ -20,16 +42,29 @@ public class GameState extends State{
 
     @Override
     public void update(float dt) {
-
+        player.update(dt);
+        camera.update();
     }
 
     @Override
     public void render(SpriteBatch sb) {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        // Update camera to follow player (optional)
+        camera.position.set(player.getPositionX(), player.getPositionY(), 0);
+        camera.update();
+
+        // --- Draw the tiled map ---
+        renderer.setView(camera);
+        renderer.render();
+
+        // --- Draw player and other sprites ---
+        sb.setProjectionMatrix(camera.combined);
         sb.begin();
-        sb.draw(background,0,0, HorrorMain.WIDTH,HorrorMain.HEIGHT/2);
+        player.render(sb);
         sb.end();
     }
+
 
     @Override
     public void dispose() {

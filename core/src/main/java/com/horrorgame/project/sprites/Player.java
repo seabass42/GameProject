@@ -3,36 +3,69 @@ package com.horrorgame.project.sprites;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.math.Vector3;
 
-public class Player extends Sprite implements InputProcessor {
-    //private Vector3 position;
+public class Player implements InputProcessor {
+
+    private Vector2 position = new Vector2();
     private Vector2 walkSpeed = new Vector2();
-    private float speed = 60*2;
+    private float speed = 60 * 2;
 
+    private TextureAtlas atlas;
+    private Animation<TextureRegion> walkAnimation;
+    private Animation<TextureRegion> idleAnimation;
 
+    private float stateTime = 0;
+    private boolean isWalking = false;
 
-    public Player(Sprite sprite){ // Initializes the player to start at (x,y)
-        //position = new Vector3(x,y,0);
-        super(sprite);
+    public Player(float x, float y) {
+        position.set(x, y);
 
+        atlas = new TextureAtlas(Gdx.files.internal("assets/sprites/walkingSprites.atlas"));
+
+        // Load animations
+        walkAnimation = new Animation<>(0.05f, atlas.findRegions("walking"));
+        walkAnimation.setPlayMode(Animation.PlayMode.LOOP);
+
+        if (atlas.findRegions("idle").size > 0) {
+            idleAnimation = new Animation<>(0.1f, atlas.findRegions("idle"));
+            idleAnimation.setPlayMode(Animation.PlayMode.LOOP);
+        } else {
+            idleAnimation = new Animation<>(1f, walkAnimation.getKeyFrame(0));
+        }
     }
 
-    public void update(float dt){
+    public float getPositionX() { return position.x; }
+    public float getPositionY() { return position.y; }
 
-        setX(getX() + walkSpeed.x * dt);
-        setY(getY() + walkSpeed.y * dt);
+    public void update(float dt) {
+        // Only advance animation time if walking
+        if (isWalking) {
+            stateTime += dt;
+        }
+
+        // Move player
+        position.x += walkSpeed.x * dt;
+        position.y += walkSpeed.y * dt;
     }
 
-    public void draw(SpriteBatch batch){
-        update(Gdx.graphics.getDeltaTime());
-        super.draw(batch);
+    public void render(SpriteBatch batch) {
+        TextureRegion currentFrame;
 
+        // Only use walking animation if player is moving
+        if (walkSpeed.x != 0 || walkSpeed.y != 0) {
+            currentFrame = walkAnimation.getKeyFrame(stateTime, true);
+        } else {
+            // Use idle animation (or just the first frame if you only have one)
+            currentFrame = idleAnimation.getKeyFrame(stateTime, true);
+        }
+
+        batch.draw(currentFrame, position.x, position.y);
     }
 
+
+    // --- Input handling ---
     @Override
     public boolean keyDown(int keycode) {
         switch (keycode) {
@@ -47,7 +80,12 @@ public class Player extends Sprite implements InputProcessor {
                 break;
             case Input.Keys.D:
                 walkSpeed.x = speed;
+                break;
+            default:
+                return false;
         }
+
+        isWalking = true;
         return true;
     }
 
@@ -61,42 +99,26 @@ public class Player extends Sprite implements InputProcessor {
             case Input.Keys.A:
             case Input.Keys.D:
                 walkSpeed.x = 0;
+                break;
+            default:
+                return false;
         }
+
+        // Check if all movement keys are released
+        if (walkSpeed.x == 0 && walkSpeed.y == 0) {
+            isWalking = false;
+            stateTime = 0; // optional: reset to first walking frame
+        }
+
         return true;
     }
 
-    @Override
-    public boolean keyTyped(char character) {
-        return false;
-    }
-
-    @Override
-    public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        return false;
-    }
-
-    @Override
-    public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-        return false;
-    }
-
-    @Override
-    public boolean touchCancelled(int screenX, int screenY, int pointer, int button) {
-        return false;
-    }
-
-    @Override
-    public boolean touchDragged(int screenX, int screenY, int pointer) {
-        return false;
-    }
-
-    @Override
-    public boolean mouseMoved(int screenX, int screenY) {
-        return false;
-    }
-
-    @Override
-    public boolean scrolled(float amountX, float amountY) {
-        return false;
-    }
+    // --- Unused Input methods ---
+    @Override public boolean keyTyped(char character) { return false; }
+    @Override public boolean touchDown(int screenX, int screenY, int pointer, int button) { return false; }
+    @Override public boolean touchUp(int screenX, int screenY, int pointer, int button) { return false; }
+    @Override public boolean touchCancelled(int screenX, int screenY, int pointer, int button) { return false; }
+    @Override public boolean touchDragged(int screenX, int screenY, int pointer) { return false; }
+    @Override public boolean mouseMoved(int screenX, int screenY) { return false; }
+    @Override public boolean scrolled(float amountX, float amountY) { return false; }
 }
