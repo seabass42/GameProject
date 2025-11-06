@@ -3,6 +3,7 @@ package com.horrorgame.project.sprites;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.math.Vector2;
 
@@ -11,12 +12,13 @@ public class Player implements InputProcessor {
     private Vector2 position = new Vector2();
     private Vector2 walkSpeed = new Vector2();
     private float speed = 60 * 2;
+    private boolean walkingLeft = false;
 
     private TextureAtlas atlas;
     private Animation<TextureRegion> walkAnimation;
     private Animation<TextureRegion> idleAnimation;
 
-    private float stateTime = 0;
+    private float stateTime = 0; //animation time / frame number
     private boolean isWalking = false;
 
     public Player(float x, float y) {
@@ -25,6 +27,8 @@ public class Player implements InputProcessor {
         atlas = new TextureAtlas(Gdx.files.internal("assets/sprites/idleSprites.atlas"));
         idleAnimation = new Animation<>(0.1f, atlas.findRegions("idle"));
         idleAnimation.setPlayMode(Animation.PlayMode.LOOP);
+        atlas = new TextureAtlas(Gdx.files.internal("assets/sprites/walkingSprites.atlas"));
+        walkAnimation = new Animation<>(0.05f, atlas.findRegions("walking"));
     }
 
     public float getPositionX() { return position.x; }
@@ -34,17 +38,18 @@ public class Player implements InputProcessor {
         // Only advance animation time if walking
         if (isWalking) {
             stateTime += dt;
-            atlas = new TextureAtlas(Gdx.files.internal("assets/sprites/walkingSprites.atlas"));
-            walkAnimation = new Animation<>(0.05f, atlas.findRegions("walking"));
         }
 
         // Move player
+        if(Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)) {
+            speed = 200;
+        }
         position.x += walkSpeed.x * dt;
         position.y += walkSpeed.y * dt;
     }
 
     public void render(SpriteBatch batch) {
-        TextureRegion currentFrame;
+        TextureRegion currentFrame = idleAnimation.getKeyFrame(stateTime, true);
 
         // Only use walking animation if player is moving
         if (isWalking) {
@@ -54,6 +59,10 @@ public class Player implements InputProcessor {
             currentFrame = idleAnimation.getKeyFrame(stateTime, true);
         }
 
+        //checks the direction of the player in order to flip the images
+        if (currentFrame.isFlipX() != walkingLeft) {
+            currentFrame.flip(true, false);
+        }
         batch.draw(currentFrame, position.x, position.y);
     }
 
@@ -61,6 +70,7 @@ public class Player implements InputProcessor {
     // --- Input handling ---
     @Override
     public boolean keyDown(int keycode) {
+        walkSpeed.set(0, 0); // (cancels last input) reset the walking velocity every time this is called (locks diagonal movement)
         switch (keycode) {
             case Input.Keys.W:
                 walkSpeed.y = speed;
@@ -69,9 +79,11 @@ public class Player implements InputProcessor {
                 walkSpeed.y = -speed;
                 break;
             case Input.Keys.A:
+                walkingLeft = true;
                 walkSpeed.x = -speed;
                 break;
             case Input.Keys.D:
+                walkingLeft = false;
                 walkSpeed.x = speed;
                 break;
             default:
