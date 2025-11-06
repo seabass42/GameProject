@@ -1,0 +1,42 @@
+walkingSprites.png
+size: 246, 442
+format: RGBA8888
+filter: Linear, Linear
+repeat: none
+pma: false
+walking
+  bounds: 0, 322, 84, 113
+  index: 1
+walking
+  bounds: 162, 322, 84, 115
+  index: 2
+walking
+  bounds: 78, 204, 84, 112
+  index: 3
+walking
+  bounds: 153, 97, 84, 107
+  index: 4
+walking
+  bounds: 152, 0, 76, 97
+  index: 5
+walking
+  bounds: 0, 97, 76, 97
+  index: 6
+walking
+  bounds: 162, 204, 78, 118
+  index: 7
+walking
+  bounds: 84, 322, 78, 120
+  index: 8
+walking
+  bounds: 0, 204, 78, 117
+  index: 9
+walking
+  bounds: 76, 97, 77, 107
+  index: 10
+walking
+  bounds: 0, 0, 76, 95
+  index: 11
+walking
+  bounds: 76, 0, 76, 95
+  index: 12
