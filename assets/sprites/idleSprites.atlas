@@ -1,8 +1,12 @@
-idle.png
-size: 78, 103
+idleSprites.png
+size: 156, 103
 format: RGBA8888
 filter: Linear, Linear
 repeat: none
 pma: false
 idle
   bounds: 0, 0, 78, 103
+  index: 1
+idle
+  bounds: 78, 0, 78, 103
+  index: 2

@@ -22,18 +22,9 @@ public class Player implements InputProcessor {
     public Player(float x, float y) {
         position.set(x, y);
 
-        atlas = new TextureAtlas(Gdx.files.internal("assets/sprites/walkingSprites.atlas"));
-
-        // Load animations
-        walkAnimation = new Animation<>(0.05f, atlas.findRegions("walking"));
-        walkAnimation.setPlayMode(Animation.PlayMode.LOOP);
-
-        if (atlas.findRegions("idle").size > 0) {
-            idleAnimation = new Animation<>(0.1f, atlas.findRegions("idle"));
-            idleAnimation.setPlayMode(Animation.PlayMode.LOOP);
-        } else {
-            idleAnimation = new Animation<>(1f, walkAnimation.getKeyFrame(0));
-        }
+        atlas = new TextureAtlas(Gdx.files.internal("assets/sprites/idleSprites.atlas"));
+        idleAnimation = new Animation<>(0.1f, atlas.findRegions("idle"));
+        idleAnimation.setPlayMode(Animation.PlayMode.LOOP);
     }
 
     public float getPositionX() { return position.x; }
@@ -43,6 +34,8 @@ public class Player implements InputProcessor {
         // Only advance animation time if walking
         if (isWalking) {
             stateTime += dt;
+            atlas = new TextureAtlas(Gdx.files.internal("assets/sprites/walkingSprites.atlas"));
+            walkAnimation = new Animation<>(0.05f, atlas.findRegions("walking"));
         }
 
         // Move player
@@ -54,7 +47,7 @@ public class Player implements InputProcessor {
         TextureRegion currentFrame;
 
         // Only use walking animation if player is moving
-        if (walkSpeed.x != 0 || walkSpeed.y != 0) {
+        if (isWalking) {
             currentFrame = walkAnimation.getKeyFrame(stateTime, true);
         } else {
             // Use idle animation (or just the first frame if you only have one)
