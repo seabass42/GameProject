@@ -34,7 +34,7 @@ public class MapDrawer {
                 /*  2D arrays go from top left down, while LibGDX's draw() starts at bottom left,
                     so the y coordinate of the tile must be flipped to avoid an inverted map
                     */
-                float y = HorrorMain.HEIGHT - (rows * tileSize);
+                float y = (HorrorMain.HEIGHT - tileSize) - (rows * tileSize);
                 sb.draw(tiles[mapRow][mapCol], x, y);
             }
         }

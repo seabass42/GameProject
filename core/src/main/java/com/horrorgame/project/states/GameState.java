@@ -37,7 +37,7 @@ public class GameState extends State{
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         sb.begin();
         //sb.draw(background,0,0, HorrorMain.WIDTH,HorrorMain.HEIGHT/2);
-        MapDrawer mapDrawer = new MapDrawer(MapData.gameStateMap);
+        MapDrawer mapDrawer = new MapDrawer(MapData.GameStateMap);
         mapDrawer.render(sb);
 
         sb.end();

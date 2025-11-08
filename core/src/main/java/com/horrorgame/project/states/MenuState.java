@@ -75,7 +75,7 @@ public class MenuState extends State {
     public void render(SpriteBatch sb) {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         sb.begin();
-        sb.draw(background,0,0, HorrorMain.WIDTH / 1.2f, HorrorMain.HEIGHT/ 1.2f);
+        sb.draw(background,0,0, HorrorMain.WIDTH, HorrorMain.HEIGHT);
         sb.end();
         stage.act(Gdx.graphics.getDeltaTime());
         stage.draw();
