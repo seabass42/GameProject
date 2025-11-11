@@ -31,8 +31,6 @@ public class Player implements InputProcessor {
         walkAnimation = new Animation<>(0.05f, atlas.findRegions("walking"));
     }
 
-    public float getPositionX() { return position.x; }
-    public float getPositionY() { return position.y; }
 
     public void update(float dt) {
         // Only advance animation time if walking
@@ -46,6 +44,15 @@ public class Player implements InputProcessor {
         }
         position.x += walkSpeed.x * dt;
         position.y += walkSpeed.y * dt;
+    }
+
+    public float getPositionX() { return position.x; }
+    public float getPositionY() { return position.y; }
+    public Vector2 getVectorPos() {return position;}
+    public float getPosXFace(){if(walkingLeft){return position.x;}else{return position.x +75;}}
+    public float getAngleBetweenObj(Vector2 v1, Vector2 v2){
+        Vector2 diff = v2.sub(v1);
+        return diff.angle();
     }
 
     public void render(SpriteBatch batch) {
@@ -70,7 +77,7 @@ public class Player implements InputProcessor {
     // --- Input handling ---
     @Override
     public boolean keyDown(int keycode) {
-        walkSpeed.set(0, 0); // (cancels last input) reset the walking velocity every time this is called (locks diagonal movement)
+        //walkSpeed.set(0, 0); // (cancels last input) reset the walking velocity every time this is called (locks diagonal movement)
         switch (keycode) {
             case Input.Keys.W:
                 walkSpeed.y = speed;

@@ -2,10 +2,12 @@ package com.horrorgame.project;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.horrorgame.project.states.GameStateManager;
 import com.horrorgame.project.states.MenuState;
 
@@ -13,6 +15,7 @@ import com.horrorgame.project.states.MenuState;
 public class HorrorMain extends ApplicationAdapter {
     private SpriteBatch batch;
     private GameStateManager gsm;
+    private AssetManager manager;
 
     public static final int WIDTH = 1280;
     public static final int HEIGHT = 720;
@@ -22,9 +25,16 @@ public class HorrorMain extends ApplicationAdapter {
     public void create() {
         batch = new SpriteBatch();
         gsm = new GameStateManager();
-        //ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
-        Gdx.gl.glClearColor(1, 0, 0, 1);
-        gsm.push(new MenuState(gsm));
+        manager = new AssetManager();
+
+        // Preload Menu assets only
+        manager.load("onlytheocean-silent-hill-sm.jpeg", Texture.class);
+        manager.load("vhsui/vhs-ui.json", Skin.class);
+        manager.load("sounds/gui/vhsPlay.ogg", Sound.class);
+        manager.load("sounds/gui/hoverSelect.wav", Sound.class);
+        manager.finishLoading(); // Menu assets load instantly
+
+        gsm.push(new MenuState(gsm, manager));
     }
 
     @Override
