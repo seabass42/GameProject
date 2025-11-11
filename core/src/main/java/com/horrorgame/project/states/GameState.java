@@ -3,13 +3,7 @@ package com.horrorgame.project.states;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.maps.tiled.TiledMap;
-import com.badlogic.gdx.maps.tiled.TmxMapLoader;
-import com.badlogic.gdx.maps.tiled.renderers.IsometricTiledMapRenderer;
-import com.horrorgame.project.HorrorMain;
 import com.horrorgame.project.sprites.Player;
 
 public class GameState extends State{
@@ -43,13 +37,8 @@ public class GameState extends State{
     public void render(SpriteBatch sb) {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // Update camera to follow player (optional)
-        //camera.position.set(player.getPositionX(), player.getPositionY(), 0);
         camera.update();
 
-        // --- Draw the tiled map ---
-
-        // --- Draw player and other sprites ---
         sb.setProjectionMatrix(camera.combined);
         sb.begin();
         player.render(sb);
