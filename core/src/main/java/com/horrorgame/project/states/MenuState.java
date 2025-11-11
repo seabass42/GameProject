@@ -1,6 +1,7 @@
 package com.horrorgame.project.states;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
@@ -30,6 +31,9 @@ public class MenuState extends State {
     private Rectangle textBox;
     private ShapeRenderer shapeRenderer;
     private Label title;
+    private Boolean playOnce = false;
+    private Sound clickPlaySound = Gdx.audio.newSound(Gdx.files.internal("sounds/gui/vhsPlay.ogg"));
+    private Sound hoverSelect = Gdx.audio.newSound(Gdx.files.internal("sounds/gui/hoverSelect.wav"));
 
     public MenuState(GameStateManager gsm){
         super(gsm); //Initialize background and ui skin
@@ -60,13 +64,18 @@ public class MenuState extends State {
 
     @Override
     protected void handleInput() {
-        onChange(playButton, () -> gsm.set(new GameState(gsm))); // Buttons made functional
+        onChange(playButton, () -> gsm.set(new GameState(gsm)));// Buttons made functional
+        onChange(playButton, () -> clickPlaySound.play());  //plays VHS sound when 'Play' is clicked
         onChange(exitButton, () -> Gdx.app.exit());
         dispose();
     }
 
     @Override
     public void update(float dt) {
+        if(buttonHover() && !playOnce){
+            hoverSelect.play();
+            playOnce = true;
+        }else if(!buttonHover()){playOnce = false;}
         handleInput();
         stage.getViewport().update(HorrorMain.WIDTH, HorrorMain.HEIGHT, true);
     }
@@ -75,10 +84,18 @@ public class MenuState extends State {
     public void render(SpriteBatch sb) {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         sb.begin();
-        sb.draw(background,0,0, HorrorMain.WIDTH / 1.2f, HorrorMain.HEIGHT/ 1.2f);
+        sb.draw(background,0,0, HorrorMain.WIDTH, HorrorMain.HEIGHT);
         sb.end();
         stage.act(Gdx.graphics.getDeltaTime());
         stage.draw();
+    }
+
+    private Boolean buttonHover(){
+
+        if(playButton.isOver() || exitButton.isOver() || creditsButton.isOver())
+            return true;
+        else
+            return false;
     }
 
     @Override
