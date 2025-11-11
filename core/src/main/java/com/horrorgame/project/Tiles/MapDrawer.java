@@ -4,16 +4,24 @@
  */
 package com.horrorgame.project.Tiles;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.utils.JsonReader;
+import com.badlogic.gdx.utils.JsonValue;
 import com.horrorgame.project.HorrorMain;
+
+import java.io.File;
 
 public class MapDrawer {
     private int[][] map;
     private Texture tileset;
     private TextureRegion[][] tiles;
     private int tileSize, tilesPerRow;
+
+    private JsonReader reader;
+    private JsonValue base, layer, data;
 
     public MapDrawer(int[][] map){
         this.map = map;     // map from state class
@@ -39,4 +47,5 @@ public class MapDrawer {
             }
         }
     }
+
 }
