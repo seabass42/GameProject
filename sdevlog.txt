@@ -1,3 +1,6 @@
+This dev log serves as an insight into the thought process that went into making our game as well as things I picked up on the way.
+
 10/27 After learning about / tinkering with libgdx and scene2d, the menu is complete with functional buttons able to start and exit the game, along with a credits button intended to display image sources as well as names of the developers, to be implemented at a later date. Now, it is time to move onto implementing the game state. -SES
 
+11/8 Finished a class for manual implementation of 2D tiled maps while also obtaining a tile set to use to make maps. We initially created two branches to experiment with different styles of map implementation, I am working on the manual tile implementation with using libGDX only, while Richard is working with tiled. Once we have finished our respective map implementations, we are going to decide which implementation we like more and will merge it to main. -SES
 
