@@ -31,13 +31,16 @@ public class GameState extends State{
     private SpriteBatch batch;
     private static OrthographicCamera camera = new OrthographicCamera();
 
-    //Lighting
+    // --LIGHTING--
     private static World world = new World(new Vector2(0,0), false);
     private RayHandler rayHandler = new RayHandler(world);
+    private PointLight ambientLight;
+
+    //Flashlight Initiations
     private ConeLight flashlight;
     private Boolean flashOn = false;
     private Color flashRays = Color.CLEAR;
-    private PointLight ambientLight;
+    private Sound flashlight_click;
 
     //Test background
     private Texture background;
@@ -47,17 +50,19 @@ public class GameState extends State{
         this.manager = manager;
 
         background = manager.get("onlytheocean-silent-hill-sm.jpeg", Texture.class);
+        flashlight_click = manager.get("sounds/objectInteractions/flashlight_click.wav", Sound.class);
         player = new Player(0,0);
 
         Gdx.input.setInputProcessor(player);
         camera.viewportWidth = Gdx.graphics.getWidth()/2;
         camera.viewportHeight = Gdx.graphics.getHeight()/2;
 
-        //Flashlight Testing
+        //Lighting
         rayHandler.setCombinedMatrix(camera.combined);
         rayHandler.useDiffuseLight(true); //Stops "draining the life from the colors"/desaturation of textures
         Color lightColor = new Color(0.45f, 0.35f, 0.65f, 0f); //ambient light color
         rayHandler.setAmbientLight(Color.BLACK);
+
         //Actual Flashlight (testing)
         flashlight = new ConeLight(rayHandler, 250, Color.WHITE, 350, player.getPositionX(), player.getPositionY(), 0, 45);
         flashlight.setActive(false);
@@ -66,8 +71,9 @@ public class GameState extends State{
     }
     @Override
     protected void handleInput() {
-        if (Gdx.input.justTouched()) { // Check if the screen was just touched
+        if (Gdx.input.justTouched() && player.hasLight) { // Check if the screen was just touched
             clickFlashlight();
+            flashlight_click.play();
         }
     }
 
@@ -83,7 +89,7 @@ public class GameState extends State{
         camera.unproject(tempVec);
         cursorPosition.set(tempVec.x, tempVec.y);
         //Light Updates
-        ambientLight.setPosition(player.getPositionX()+20, player.getPositionY()+50);
+        ambientLight.setPosition(player.getPositionX()+40, player.getPositionY()+50);
         flashlightUpdate();
     }
 
@@ -92,7 +98,7 @@ public class GameState extends State{
     public void clickFlashlight(){flashOn = !flashOn; flashlight.setActive(flashOn);}
     //updates flashlight
     private void flashlightUpdate(){
-        flashlight.setPosition(player.getPosXFace(), player.getPositionY()+50);/*
+        flashlight.setPosition(player.getPositionX()+40, player.getPositionY()+50);/*
         if(player.getPosXFace() > player.getPositionX()){ flashlight.setDirection(0);}
         else if(player.getPosXFace() == player.getPositionX()){ flashlight.setDirection(180);} */
         flashlight.setDirection(player.getAngleBetweenObj(player.getVectorPos(), cursorPosition));

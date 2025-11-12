@@ -52,6 +52,7 @@ public class LoadingState extends State {
             if(!manager.isLoaded("onlytheocean-silent-hill-sm.jpeg"))
                 manager.load("onlytheocean-silent-hill-sm.jpeg", Texture.class);
             // Add other assets (sounds, maps, etc.) here
+            manager.load("sounds/objectInteractions/flashlight_click.wav", Sound.class);
         }
     }
 
@@ -70,6 +71,7 @@ public class LoadingState extends State {
         timer += dt;
 
         if(manager.update() && timer >= 1f) {
+            manager.finishLoading();
             gsm.set(new GameState(gsm, manager));
         }
 
