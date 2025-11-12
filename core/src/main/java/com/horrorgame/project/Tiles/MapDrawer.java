@@ -34,7 +34,7 @@ public class MapDrawer {
 
         for (int rows = 0; rows < map.length; rows++){
             for (int col = 0; col < map[0].length; col++){
-                int tileIndex = map[rows][col];     //  Get the key for which tile is to be rendered
+                int tileIndex = map[rows][col] - 1;     //  Get the key for which tile is to be rendered
                 int mapRow = tileIndex / tilesPerRow;   //  Translate key into 2D array reference
                 int mapCol = tileIndex % tilesPerRow;
 

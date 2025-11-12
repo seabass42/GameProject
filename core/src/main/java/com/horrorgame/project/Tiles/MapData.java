@@ -36,8 +36,8 @@ public class MapData {
         return map;
     }
 
-   static File gameStateMap = new File("Maps/test1.json");
-   public static int[][] test = prepareMap(gameStateMap);
+   static File gameStateMap = new File("Maps/MainMap.json");
+   public static int[][] MainMap = prepareMap(gameStateMap);
 
 
 
