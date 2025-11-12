@@ -4,20 +4,21 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.audio.Sound;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.math.Vector2;
 
-import javax.sound.midi.Soundbank;
 import java.util.ArrayList;
 import java.util.Random;
 
 public class Player implements InputProcessor {
 
     private Vector2 position = new Vector2();
+    private Vector2 centerOfPlayer =  new Vector2();  //bc the sprites using position create an offset
     private Vector2 walkSpeed = new Vector2();
     private float speed = 120;
-    private boolean walkingLeft = false;
+    private boolean facingLeft = false;
+
+    //Inventory Maybe
     public boolean hasLight = true; //temp true until we make it so that flashlight is obtained
 
     private TextureAtlas atlas;
@@ -37,6 +38,7 @@ public class Player implements InputProcessor {
 
     public Player(float x, float y) {
         position.set(x, y);
+        centerOfPlayer.set(x+40, y+50);
 
         atlas = new TextureAtlas(Gdx.files.internal("assets/sprites/idleSprites.atlas"));
         idleAnimation = new Animation<>(0.1f, atlas.findRegions("idle"));
@@ -63,11 +65,11 @@ public class Player implements InputProcessor {
             if(Gdx.input.isKeyPressed(Input.Keys.S)) walkSpeed.y = -speed;
             if(Gdx.input.isKeyPressed(Input.Keys.A)) {
                 walkSpeed.x = -speed;
-                walkingLeft = true;
+                facingLeft = true;
             }
             if(Gdx.input.isKeyPressed(Input.Keys.D)) {
                 walkSpeed.x = speed;
-                walkingLeft = false;
+                facingLeft = false;
             }
         } else {
             // Prevent diagonal: only move in one axis at a time (vertical first)
@@ -77,10 +79,10 @@ public class Player implements InputProcessor {
                 walkSpeed.y = -speed;
             }else if(Gdx.input.isKeyPressed(Input.Keys.A)) {
                 walkSpeed.x = -speed;
-                walkingLeft = true;
+                facingLeft = true;
             } else if(Gdx.input.isKeyPressed(Input.Keys.D)) {
                 walkSpeed.x = speed;
-                walkingLeft = false;
+                facingLeft = false;
             }
         }
 
@@ -106,6 +108,8 @@ public class Player implements InputProcessor {
         // Move player
         position.x += walkSpeed.x * dt;
         position.y += walkSpeed.y * dt;
+        centerOfPlayer.x = position.x +40;
+        centerOfPlayer.y = position.y + 50;
     }
 
     //new reusable method for loading sound files!!! for running versus walking, grass vs concrete etc
@@ -117,14 +121,16 @@ public class Player implements InputProcessor {
         return list;
     }
 
-    public float getPositionX() { return position.x; }
-    public float getPositionY() { return position.y; }
-    public Vector2 getVectorPos() {return position;}
-    public float getPosXFace(){if(walkingLeft){return position.x;}else{return position.x +75;}}
+    public float getPositionX() { return centerOfPlayer.x; }
+    public float getPositionY() { return centerOfPlayer.y; }
+    public Vector2 getVectorPos() {return centerOfPlayer;}
     public float getAngleBetweenObj(Vector2 v1, Vector2 v2){
         Vector2 diff = v2.sub(v1);
         return diff.angle();
     }
+    public boolean getDirection(){ return facingLeft; }
+    public void setDirection(boolean facingLeft){ this.facingLeft = facingLeft; }
+
 
     public void render(SpriteBatch batch) {
         TextureRegion currentFrame = idleAnimation.getKeyFrame(stateTime, true);
@@ -138,7 +144,7 @@ public class Player implements InputProcessor {
         }
 
         //checks the direction of the player in order to flip the images
-        if (currentFrame.isFlipX() != walkingLeft) {
+        if (currentFrame.isFlipX() != facingLeft) {
             currentFrame.flip(true, false);
         }
         batch.draw(currentFrame, position.x, position.y);

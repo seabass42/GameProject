@@ -20,12 +20,15 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.World;
 import com.horrorgame.project.HorrorMain;
 import com.horrorgame.project.sprites.Player;
+import jdk.internal.org.jline.terminal.TerminalBuilder;
 
 public class GameState extends State{
     private AssetManager manager = new AssetManager();
 
     //Cursor Position as Vector2
     private Vector2 cursorPosition = new Vector2();
+    private Vector3 cursorToWorldVec = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+    private Vector2 cursorToPlayer = new Vector2();
     private static Player player;
     public final int tileSize = 16;
     private SpriteBatch batch;
@@ -39,7 +42,6 @@ public class GameState extends State{
     //Flashlight Initiations
     private ConeLight flashlight;
     private Boolean flashOn = false;
-    private Color flashRays = Color.CLEAR;
     private Sound flashlight_click;
 
     //Test background
@@ -79,17 +81,22 @@ public class GameState extends State{
 
     @Override
     public void update(float dt) { //Logic
-        player.update(dt);
         camera.update();
 
         handleInput();
         //For getting cursor X and Y NOT according to camera
         // (otherwise it gets left behind when the player walks)
-        Vector3 tempVec = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
-        camera.unproject(tempVec);
-        cursorPosition.set(tempVec.x, tempVec.y);
+        cursorToWorldVec.set(Gdx.input.getX(), Gdx.input.getY(), 0);
+        camera.unproject(cursorToWorldVec);
+        cursorPosition.set(cursorToWorldVec.x, cursorToWorldVec.y);
+        cursorToPlayer.set(Gdx.input.getX(), Gdx.input.getY());
         //Light Updates
-        ambientLight.setPosition(player.getPositionX()+40, player.getPositionY()+50);
+        ambientLight.setPosition(player.getPositionX(), player.getPositionY());
+
+
+
+        player.update(dt);
+
         flashlightUpdate();
     }
 
@@ -98,10 +105,17 @@ public class GameState extends State{
     public void clickFlashlight(){flashOn = !flashOn; flashlight.setActive(flashOn);}
     //updates flashlight
     private void flashlightUpdate(){
-        flashlight.setPosition(player.getPositionX()+40, player.getPositionY()+50);/*
-        if(player.getPosXFace() > player.getPositionX()){ flashlight.setDirection(0);}
-        else if(player.getPosXFace() == player.getPositionX()){ flashlight.setDirection(180);} */
-        flashlight.setDirection(player.getAngleBetweenObj(player.getVectorPos(), cursorPosition));
+        if(flashOn) {
+            if (cursorPosition.x > player.getPositionX()) {
+                player.setDirection(false);
+            } else {
+                player.setDirection(true);
+            }
+            flashlight.setPosition(player.getPositionX(), player.getPositionY());
+            flashlight.setDirection(player.getAngleBetweenObj(player.getVectorPos(), cursorPosition));
+
+            //System.out.println(player.getPositionX() + "      " + cursorToPlayer.x);
+        }
     }
 
     @Override

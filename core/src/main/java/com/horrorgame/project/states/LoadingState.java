@@ -22,9 +22,6 @@ public class LoadingState extends State {
     private Sound vhsPlay;
     private Label label;
 
-    private boolean startedLoading = false;  // Assets queued
-    private boolean finishedLoading = false; // Assets fully loaded
-    private boolean frameRendered = false;   // Ensure at least one frame shows the loading screen
     private boolean vhsPlayed = false;       // Play sound only once
     private float timer = 0f;
 
@@ -45,15 +42,11 @@ public class LoadingState extends State {
 
     // Queue assets only once
     private void queueAssets() {
-        if (!startedLoading) {
-            startedLoading = true;
-
             // GameState assets
             if(!manager.isLoaded("onlytheocean-silent-hill-sm.jpeg"))
                 manager.load("onlytheocean-silent-hill-sm.jpeg", Texture.class);
             // Add other assets (sounds, maps, etc.) here
             manager.load("sounds/objectInteractions/flashlight_click.wav", Sound.class);
-        }
     }
 
     @Override
