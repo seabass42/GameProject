@@ -37,10 +37,7 @@ public class GameState extends State{
     private Vector3 cursorToWorldVec = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
     private Vector2 cursorToPlayer = new Vector2();
     private static Player player;
-    public final int tileSize = 16;
-    private Texture background;
-    private Texture tileset;
-    private TextureRegion[][] tiles;
+
 
 
     private SpriteBatch batch;
@@ -63,7 +60,6 @@ public class GameState extends State{
         this.manager = manager;
 
         player = new Player(HorrorMain.WIDTH/2,HorrorMain.HEIGHT/2);
-        background = manager.get("onlytheocean-silent-hill-sm.jpeg", Texture.class);
         flashlight_click = manager.get("sounds/objectInteractions/flashlight_click.wav", Sound.class);
         player = new Player(0,0);
 
@@ -89,9 +85,7 @@ public class GameState extends State{
         flashlight.setActive(false);
         //Player ambient light
         ambientLight = new PointLight(rayHandler, 10, Color.GRAY, 500, player.getPositionX(),player.getPositionY());
-        background = new Texture("testBackground.png");
-        tileset = new Texture("TileAssets/Tileset.png");
-        tiles = TextureRegion.split(tileset, tileSize, tileSize);
+
     }
     @Override
     protected void handleInput() {
@@ -156,11 +150,10 @@ public class GameState extends State{
         sb.setProjectionMatrix(camera.combined);
         sb.begin();
 
-        sb.draw(background, 0, 0, HorrorMain.WIDTH, HorrorMain.HEIGHT);
-
-        //sb.draw(background,0,0, HorrorMain.WIDTH,HorrorMain.HEIGHT/2);
         MapDrawer mapDrawer = new MapDrawer(MapData.MainMap);
         mapDrawer.render(sb);
+        MapDrawer second = new MapDrawer(MapData.MainMapLayer2);
+        second.render(sb);
         player.render(sb);
 
 

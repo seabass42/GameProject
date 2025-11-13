@@ -108,8 +108,8 @@ public class Player implements InputProcessor {
         // Move player
         position.x += walkSpeed.x * dt;
         position.y += walkSpeed.y * dt;
-        centerOfPlayer.x = position.x +40;
-        centerOfPlayer.y = position.y + 50;
+        centerOfPlayer.x = position.x + 20;
+        centerOfPlayer.y = position.y + 20;
     }
 
     //new reusable method for loading sound files!!! for running versus walking, grass vs concrete etc
@@ -133,7 +133,7 @@ public class Player implements InputProcessor {
 
 
     public void render(SpriteBatch batch) {
-        TextureRegion currentFrame = idleAnimation.getKeyFrame(stateTime, true);
+        TextureRegion currentFrame;
 
         // Only use walking animation if player is moving
         if (isWalking) {
