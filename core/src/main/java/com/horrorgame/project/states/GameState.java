@@ -25,10 +25,22 @@ import jdk.internal.org.jline.terminal.TerminalBuilder;
 public class GameState extends State{
     private AssetManager manager = new AssetManager();
 
+
     //Cursor Position as Vector2
     private Vector2 cursorPosition = new Vector2();
     private Vector3 cursorToWorldVec = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
     private Vector2 cursorToPlayer = new Vector2();
+
+    private int prevMouseX;
+    private int prevMouseY;
+    private int currentMouseX;
+    private int currentMouseY;
+    private int deltaX;
+    private int deltaY;
+    private float distance;
+    private float deltaTime;
+    private float mouseSpeed;
+
     private static Player player;
     public final int tileSize = 16;
     private SpriteBatch batch;
@@ -43,7 +55,8 @@ public class GameState extends State{
     private ConeLight flashlight;
     private Boolean flashOn = false;
     private Sound flashlight_click;
-
+    private Sound light_hum;
+    long test;
     //Test background
     private Texture background;
 
@@ -53,11 +66,17 @@ public class GameState extends State{
 
         background = manager.get("onlytheocean-silent-hill-sm.jpeg", Texture.class);
         flashlight_click = manager.get("sounds/objectInteractions/flashlight_click.wav", Sound.class);
+        light_hum = manager.get("sounds/objectInteractions/light-hum.mp3", Sound.class);
+        test = light_hum.loop();
         player = new Player(0,0);
 
         Gdx.input.setInputProcessor(player);
         camera.viewportWidth = Gdx.graphics.getWidth()/2;
         camera.viewportHeight = Gdx.graphics.getHeight()/2;
+
+        //Mouse
+        prevMouseX = Gdx.input.getX();
+        prevMouseY = Gdx.input.getY();
 
         //Lighting
         rayHandler.setCombinedMatrix(camera.combined);
@@ -82,7 +101,6 @@ public class GameState extends State{
     @Override
     public void update(float dt) { //Logic
         camera.update();
-
         handleInput();
         //For getting cursor X and Y NOT according to camera
         // (otherwise it gets left behind when the player walks)
@@ -90,6 +108,20 @@ public class GameState extends State{
         camera.unproject(cursorToWorldVec);
         cursorPosition.set(cursorToWorldVec.x, cursorToWorldVec.y);
         cursorToPlayer.set(Gdx.input.getX(), Gdx.input.getY());
+        //detecting cursor speed
+        currentMouseX = Gdx.input.getX();
+        currentMouseY = Gdx.input.getY();
+        deltaX = Gdx.input.getX() - prevMouseX;
+        deltaY = Gdx.input.getY() - prevMouseY;
+        //calculation change in distance of cursor/mouse
+        distance = (float) Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        deltaTime = Gdx.graphics.getDeltaTime(); // Time in seconds since last frame
+
+        mouseSpeed = distance / deltaTime;
+
+        prevMouseX = currentMouseX;
+        prevMouseY = currentMouseY;
+
         //Light Updates
         ambientLight.setPosition(player.getPositionX(), player.getPositionY());
 
@@ -102,20 +134,32 @@ public class GameState extends State{
 
     //METHODS FOR FLASHLIGHT
     //acts as a boolean switch
-    public void clickFlashlight(){flashOn = !flashOn; flashlight.setActive(flashOn);}
+    public void clickFlashlight(){
+        flashOn = !flashOn;
+        flashlight.setActive(flashOn);
+        light_hum.loop(test);
+        light_hum.setVolume(test, 0.01f);
+    }
     //updates flashlight
     private void flashlightUpdate(){
         if(flashOn) {
-            if (cursorPosition.x > player.getPositionX()) {
-                player.setDirection(false);
-            } else {
-                player.setDirection(true);
-            }
-            flashlight.setPosition(player.getPositionX(), player.getPositionY());
-            flashlight.setDirection(player.getAngleBetweenObj(player.getVectorPos(), cursorPosition));
+            player.setDirection(cursorPosition.x <= player.getPositionX());
+                if (test == -1) test = light_hum.loop(); // ensure looping starts once
 
-            //System.out.println(player.getPositionX() + "      " + cursorToPlayer.x);
-        }
+                flashlight.setPosition(player.getPositionX(), player.getPositionY());
+                flashlight.setDirection(player.getAngleBetweenObj(player.getVectorPos(), cursorPosition));
+
+
+                // --- Smooth volume control ---
+                float t = Math.min(mouseSpeed / 6000f, 1f);   // normalize 0–1 range (max speed = 6000)
+                t = (float) Math.pow(t, 0.5f);                // smooth easing (square root curve)
+                light_hum.setVolume(test, t);
+
+                System.out.println("mouseSpeed=" + mouseSpeed + " volume=" + t);
+            } else {
+                light_hum.stop();
+                test = -1;
+            }
     }
 
     @Override

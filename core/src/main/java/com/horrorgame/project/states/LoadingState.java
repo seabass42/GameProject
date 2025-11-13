@@ -47,6 +47,7 @@ public class LoadingState extends State {
                 manager.load("onlytheocean-silent-hill-sm.jpeg", Texture.class);
             // Add other assets (sounds, maps, etc.) here
             manager.load("sounds/objectInteractions/flashlight_click.wav", Sound.class);
+            manager.load("sounds/objectInteractions/light-hum.mp3", Sound.class);
     }
 
     @Override
