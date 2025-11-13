@@ -41,6 +41,7 @@ public class GameState extends State{
         MapDrawer mapDrawer = new MapDrawer(MapData.MainMap);
         mapDrawer.render(sb);
 
+
         sb.end();
     }
 

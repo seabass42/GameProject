@@ -11,10 +11,11 @@ public class MapData {
     private static JsonReader reader;
     private static JsonValue base, layer, data;
 
-    private static int[][] prepareMap(File file){ // Converts 1D array from json to 2D for use in MapDrawer
+
+    private static int[][] prepareMap(File file, int layerIndex){ // Converts 1D array from json to 2D for use in MapDrawer
         reader = new JsonReader();
         base = reader.parse(Gdx.files.internal(file.getPath()));
-        layer = base.get("layers").get(0);
+        layer = base.get("layers").get(layerIndex);
         data = layer.get("data");
 
         int height = layer.getInt("height");
@@ -37,7 +38,8 @@ public class MapData {
     }
 
    static File gameStateMap = new File("Maps/MainMap.json");
-   public static int[][] MainMap = prepareMap(gameStateMap);
+   public static int[][] MainMap = prepareMap(gameStateMap, 0);
+   public static int[][] MainMapLayer2 = prepareMap(gameStateMap, 1);
 
 
 
