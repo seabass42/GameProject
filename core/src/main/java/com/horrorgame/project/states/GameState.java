@@ -13,6 +13,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
@@ -40,8 +41,8 @@ public class GameState extends State{
     private Texture background;
     private Texture tileset;
     private TextureRegion[][] tiles;
-    private int tileSize;
-    private Player player;
+
+
     private SpriteBatch batch;
     private static OrthographicCamera camera = new OrthographicCamera();
 
@@ -55,19 +56,22 @@ public class GameState extends State{
     private Boolean flashOn = false;
     private Sound flashlight_click;
 
-    //Test background
-    private Texture background;
+
 
     public GameState(GameStateManager gsm, AssetManager manager){
         super(gsm);
         this.manager = manager;
 
+        player = new Player(HorrorMain.WIDTH/2,HorrorMain.HEIGHT/2);
         background = manager.get("onlytheocean-silent-hill-sm.jpeg", Texture.class);
         flashlight_click = manager.get("sounds/objectInteractions/flashlight_click.wav", Sound.class);
         player = new Player(0,0);
 
         player = new Player(HorrorMain.WIDTH/2,HorrorMain.HEIGHT/2);
         Gdx.input.setInputProcessor(player);
+        camera = new OrthographicCamera();
+        camera.viewportWidth = HorrorMain.WIDTH/2f;
+        camera.viewportHeight = HorrorMain.HEIGHT/2f;
         camera.viewportWidth = Gdx.graphics.getWidth()/2;
         camera.viewportHeight = Gdx.graphics.getHeight()/2;
         camera = new OrthographicCamera();
@@ -87,7 +91,6 @@ public class GameState extends State{
         ambientLight = new PointLight(rayHandler, 10, Color.GRAY, 500, player.getPositionX(),player.getPositionY());
         background = new Texture("testBackground.png");
         tileset = new Texture("TileAssets/Tileset.png");
-        tileSize = 16;
         tiles = TextureRegion.split(tileset, tileSize, tileSize);
     }
     @Override
@@ -101,6 +104,7 @@ public class GameState extends State{
     @Override
     public void update(float dt) { //Logic
         camera.update();
+        camera.position.set(player.getPositionX(),player.getPositionY(), 0);
 
         handleInput();
         //For getting cursor X and Y NOT according to camera
@@ -151,11 +155,15 @@ public class GameState extends State{
         // --- Draw player and other sprites ---
         sb.setProjectionMatrix(camera.combined);
         sb.begin();
+
         sb.draw(background, 0, 0, HorrorMain.WIDTH, HorrorMain.HEIGHT);
 
         //sb.draw(background,0,0, HorrorMain.WIDTH,HorrorMain.HEIGHT/2);
         MapDrawer mapDrawer = new MapDrawer(MapData.MainMap);
         mapDrawer.render(sb);
+        player.render(sb);
+
+
         player.render(sb);
         sb.end();
 
