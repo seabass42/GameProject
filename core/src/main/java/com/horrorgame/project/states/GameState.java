@@ -18,9 +18,11 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.IsometricTiledMapRenderer;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.utils.Array;
 import com.horrorgame.project.HorrorMain;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.horrorgame.project.HorrorMain;
@@ -38,6 +40,8 @@ public class GameState extends State{
     private Vector2 cursorToPlayer = new Vector2();
     private static Player player;
 
+    //  Collision
+    private Array<Rectangle> bounds;
 
 
     private SpriteBatch batch;
@@ -48,7 +52,7 @@ public class GameState extends State{
     private RayHandler rayHandler = new RayHandler(world);
     private PointLight ambientLight;
 
-    //Flashlight Initiations
+    //Flashlight
     private ConeLight flashlight;
     private Boolean flashOn = false;
     private Sound flashlight_click;
@@ -58,21 +62,14 @@ public class GameState extends State{
     public GameState(GameStateManager gsm, AssetManager manager){
         super(gsm);
         this.manager = manager;
-
-        player = new Player(HorrorMain.WIDTH/2,HorrorMain.HEIGHT/2);
-        flashlight_click = manager.get("sounds/objectInteractions/flashlight_click.wav", Sound.class);
-        player = new Player(0,0);
+        bounds = new Array<>();
 
         player = new Player(HorrorMain.WIDTH/2,HorrorMain.HEIGHT/2);
         Gdx.input.setInputProcessor(player);
+
         camera = new OrthographicCamera();
-        camera.viewportWidth = HorrorMain.WIDTH/2f;
-        camera.viewportHeight = HorrorMain.HEIGHT/2f;
-        camera.viewportWidth = Gdx.graphics.getWidth()/2;
-        camera.viewportHeight = Gdx.graphics.getHeight()/2;
-        camera = new OrthographicCamera();
-        camera.viewportWidth = HorrorMain.WIDTH/2f;
-        camera.viewportHeight = HorrorMain.HEIGHT/2f;
+        camera.viewportWidth = HorrorMain.WIDTH/3.5f;
+        camera.viewportHeight = HorrorMain.HEIGHT/3.5f;
 
         //Lighting
         rayHandler.setCombinedMatrix(camera.combined);
@@ -81,10 +78,20 @@ public class GameState extends State{
         rayHandler.setAmbientLight(Color.BLACK);
 
         //Actual Flashlight (testing)
-        flashlight = new ConeLight(rayHandler, 250, Color.WHITE, 350, player.getPositionX(), player.getPositionY(), 0, 45);
+        flashlight_click = manager.get("sounds/objectInteractions/flashlight_click.wav", Sound.class);
+        flashlight = new ConeLight(rayHandler, 250, Color.WHITE, 350, player.getPositionX(), player.getPositionY(), 0, 25);
         flashlight.setActive(false);
+
         //Player ambient light
-        ambientLight = new PointLight(rayHandler, 10, Color.GRAY, 500, player.getPositionX(),player.getPositionY());
+        ambientLight = new PointLight(rayHandler, 10, Color.GRAY, 100, player.getPositionX(),player.getPositionY());
+
+
+        bounds.add(new Rectangle(0,0, HorrorMain.WIDTH, 112)); // bottom
+        bounds.add(new Rectangle(0,0, 96, HorrorMain.HEIGHT)); // left
+        bounds.add(new Rectangle(5, HorrorMain.HEIGHT - 4, 432, 64)); // top left
+        bounds.add(new Rectangle(41, HorrorMain.HEIGHT - 4, 368, 64)); // top right
+
+
 
     }
     @Override
@@ -108,22 +115,34 @@ public class GameState extends State{
         cursorPosition.set(cursorToWorldVec.x, cursorToWorldVec.y);
         cursorToPlayer.set(Gdx.input.getX(), Gdx.input.getY());
         //Light Updates
-        ambientLight.setPosition(player.getPositionX(), player.getPositionY());
+        ambientLight.setPosition(player.getPositionX()-10, player.getPositionY());
 
 
+        for (Rectangle bound : bounds){     // Check X collision
+            if (player.collides(bound)){
+                if (player.getVelX() < 0){
+                    //player.position.x
+                }
+            }
+            else if (player.getVelY() > 0 && player.collides(bound)){
+                player.setVelocity(player.getVelX(), 0);
 
+            }
+        }
         player.update(dt);
 
         flashlightUpdate();
+
     }
 
     //METHODS FOR FLASHLIGHT
     //acts as a boolean switch
     public void clickFlashlight(){flashOn = !flashOn; flashlight.setActive(flashOn);}
+
     //updates flashlight
     private void flashlightUpdate(){
         if(flashOn) {
-            if (cursorPosition.x > player.getPositionX()) {
+            if (cursorPosition.x > player.getPositionX()) {     // Player faces direction of cursor, with setDirection() determining if the player is facing left
                 player.setDirection(false);
             } else {
                 player.setDirection(true);
@@ -141,9 +160,9 @@ public class GameState extends State{
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         // Update camera to follow player (optional)
-        camera.position.set(player.getPositionX()+20, player.getPositionY()+40, 0);
+        camera.position.set(player.getPositionX() - 10, player.getPositionY() + 0, 0);
         camera.update();
-        camera.position.set(HorrorMain.WIDTH/2,HorrorMain.HEIGHT/2,0);
+
 
 
         // --- Draw player and other sprites ---
@@ -154,10 +173,11 @@ public class GameState extends State{
         mapDrawer.render(sb);
         MapDrawer second = new MapDrawer(MapData.MainMapLayer2);
         second.render(sb);
+
         player.render(sb);
 
 
-        player.render(sb);
+
         sb.end();
 
         //Light

@@ -5,6 +5,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.g2d.*;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
 import java.util.ArrayList;
@@ -12,7 +13,7 @@ import java.util.Random;
 
 public class Player implements InputProcessor {
 
-    private Vector2 position = new Vector2();
+    public Vector2 position = new Vector2();
     private Vector2 centerOfPlayer =  new Vector2();  //bc the sprites using position create an offset
     private Vector2 walkSpeed = new Vector2();
     private float speed = 120;
@@ -35,6 +36,10 @@ public class Player implements InputProcessor {
     private boolean isWalking = false;
     private boolean allowDiagonals = false; // toggle diagonal movement
 
+    private Rectangle hitbox;
+    private static final int PLAYER_WIDTH = 20;
+    private static final int PLAYER_HEIGHT = 32;
+
 
     public Player(float x, float y) {
         position.set(x, y);
@@ -47,6 +52,11 @@ public class Player implements InputProcessor {
         walkAnimation = new Animation<>(0.05f, atlas.findRegions("walking"));
         footsteps = loadSounds("assets/sounds/player/LightDirt", 4);
 
+        hitbox = new Rectangle(x,y,PLAYER_WIDTH,PLAYER_HEIGHT);
+    }
+    //  Check if player is colliding with something
+    public boolean collides(Rectangle rect){
+        return hitbox.overlaps(rect);
     }
 
 
@@ -110,7 +120,17 @@ public class Player implements InputProcessor {
         position.y += walkSpeed.y * dt;
         centerOfPlayer.x = position.x + 20;
         centerOfPlayer.y = position.y + 20;
+        hitbox.setPosition(position);
     }
+    public void setVelocity(float x, float y){
+        walkSpeed.x = x;
+        walkSpeed.y = y;
+    }
+
+    public Rectangle getHitbox(){
+        return hitbox;
+    }
+
 
     //new reusable method for loading sound files!!! for running versus walking, grass vs concrete etc
     private ArrayList<Sound> loadSounds(String basePath, int count) {
@@ -147,7 +167,7 @@ public class Player implements InputProcessor {
         if (currentFrame.isFlipX() != facingLeft) {
             currentFrame.flip(true, false);
         }
-        batch.draw(currentFrame, position.x, position.y);
+        batch.draw(currentFrame, position.x, position.y,20,32);
     }
 
 
@@ -156,6 +176,17 @@ public class Player implements InputProcessor {
         if(Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)) {
             speed = 200;
         }else speed=120;
+    }
+
+    public float getVelX(){
+        return walkSpeed.x;
+    }
+    public float getVelY(){
+        return walkSpeed.y;
+    }
+    public void setPosition(float x, float y){
+        position.x = x;
+        position.y = y;
     }
 
     // --- Unused Input methods ---
