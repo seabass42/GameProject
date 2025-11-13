@@ -1,6 +1,7 @@
 package com.horrorgame.project.states;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -23,6 +24,8 @@ import java.util.concurrent.TimeUnit;
 
 
 public class MenuState extends State {
+    private AssetManager manager = new AssetManager();
+
     private Texture background;
     private Stage stage;
     private Skin skin;
@@ -32,13 +35,15 @@ public class MenuState extends State {
     private ShapeRenderer shapeRenderer;
     private Label title;
     private Boolean playOnce = false;
-    private Sound clickPlaySound = Gdx.audio.newSound(Gdx.files.internal("sounds/gui/vhsPlay.ogg"));
-    private Sound hoverSelect = Gdx.audio.newSound(Gdx.files.internal("sounds/gui/hoverSelect.wav"));
+    private final Sound hoverSelect;
 
-    public MenuState(GameStateManager gsm){
+    public MenuState(GameStateManager gsm, AssetManager manager){
         super(gsm); //Initialize background and ui skin
-        background = new Texture("onlytheocean-silent-hill-sm.jpeg");
-        skin = new Skin(Gdx.files.internal("vhsui/vhs-ui.json")); // Use VHS ui folder
+        this.manager = manager;
+
+        background = manager.get("onlytheocean-silent-hill-sm.jpeg", Texture.class);
+        hoverSelect = manager.get("sounds/gui/hoverSelect.wav", Sound.class);
+        skin = manager.get("vhsui/vhs-ui.json", Skin.class);
 
         stage = new Stage(new ScreenViewport()); //Set up stage
         Gdx.input.setInputProcessor(stage);
@@ -62,12 +67,23 @@ public class MenuState extends State {
         //table.setDebug(true);
     }
 
+
+
     @Override
     protected void handleInput() {
-        onChange(playButton, () -> gsm.set(new GameState(gsm)));// Buttons made functional
-        onChange(playButton, () -> clickPlaySound.play());  //plays VHS sound when 'Play' is clicked
+        onChange(playButton, () -> gsm.set(new LoadingState(gsm, manager)));// Buttons made functional
+
         onChange(exitButton, () -> Gdx.app.exit());
-        dispose();
+    }
+
+    private void onPlayClicked() {
+
+        // Check if GameState assets are already loaded
+        if(manager.isLoaded("onlytheocean-silent-hill-sm.jpeg")) {
+            gsm.set(new GameState(gsm, manager));
+        } else {
+            gsm.set(new LoadingState(gsm, manager));
+        }
     }
 
     @Override
