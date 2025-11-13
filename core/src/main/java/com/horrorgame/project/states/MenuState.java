@@ -88,6 +88,7 @@ public class MenuState extends State {
         sb.end();
         stage.act(Gdx.graphics.getDeltaTime());
         stage.draw();
+
     }
 
     private Boolean buttonHover(){

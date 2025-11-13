@@ -1,12 +1,21 @@
 package com.horrorgame.project.states;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.horrorgame.project.HorrorMain;
+import com.horrorgame.project.Tiles.MapData;
+import com.horrorgame.project.Tiles.MapDrawer;
 import com.horrorgame.project.sprites.Player;
 
 public class GameState extends State{
+    private Texture background;
+    private Texture tileset;
+    private TextureRegion[][] tiles;
+    private int tileSize;
     private Player player;
     private SpriteBatch batch;
     private OrthographicCamera camera;
@@ -21,6 +30,10 @@ public class GameState extends State{
         camera.viewportWidth = Gdx.graphics.getWidth()/2;
         camera.viewportHeight = Gdx.graphics.getHeight()/2;
 
+        background = new Texture("testBackground.png");
+        tileset = new Texture("TileAssets/Tileset.png");
+        tileSize = 16;
+        tiles = TextureRegion.split(tileset, tileSize, tileSize);
     }
     @Override
     protected void handleInput() {
@@ -42,6 +55,11 @@ public class GameState extends State{
         sb.setProjectionMatrix(camera.combined);
         sb.begin();
         player.render(sb);
+        //sb.draw(background,0,0, HorrorMain.WIDTH,HorrorMain.HEIGHT/2);
+        MapDrawer mapDrawer = new MapDrawer(MapData.MainMap);
+        mapDrawer.render(sb);
+
+
         sb.end();
     }
 
