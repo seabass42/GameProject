@@ -7,32 +7,21 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Sprite;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.maps.tiled.TiledMap;
-import com.badlogic.gdx.maps.tiled.TmxMapLoader;
-import com.badlogic.gdx.maps.tiled.renderers.IsometricTiledMapRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.Array;
 import com.horrorgame.project.HorrorMain;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.horrorgame.project.HorrorMain;
 import com.horrorgame.project.Tiles.MapData;
 import com.horrorgame.project.Tiles.MapDrawer;
 import com.horrorgame.project.sprites.Player;
-import jdk.internal.org.jline.terminal.TerminalBuilder;
 
 public class GameState extends State{
-    private AssetManager manager = new AssetManager();
+    private AssetManager manager;
 
     //Cursor Position as Vector2
     private Vector2 cursorPosition = new Vector2();
@@ -48,7 +37,7 @@ public class GameState extends State{
     private static OrthographicCamera camera = new OrthographicCamera();
 
     // --LIGHTING--
-    private static World world = new World(new Vector2(0,0), false);
+    private World world = new World(new Vector2(0,0), false);
     private RayHandler rayHandler = new RayHandler(world);
     private PointLight ambientLight;
 
@@ -88,8 +77,11 @@ public class GameState extends State{
 
         bounds.add(new Rectangle(0,0, HorrorMain.WIDTH, 112)); // bottom
         bounds.add(new Rectangle(0,0, 96, HorrorMain.HEIGHT)); // left
-        bounds.add(new Rectangle(5, HorrorMain.HEIGHT - 4, 432, 64)); // top left
-        bounds.add(new Rectangle(41, HorrorMain.HEIGHT - 4, 368, 64)); // top right
+        bounds.add(new Rectangle(80, (HorrorMain.HEIGHT - 64), 432, 64)); // top left
+        bounds.add(new Rectangle(656, (HorrorMain.HEIGHT - 64) , 368, 64)); // top right
+        bounds.add(new Rectangle(816, 80, 128, 80));
+
+        bounds.add(new Rectangle(544, HorrorMain.HEIGHT - 64, 80, 32)); // EXIT (Must be last)
 
 
 
@@ -99,6 +91,7 @@ public class GameState extends State{
         if (Gdx.input.justTouched() && player.hasLight) { // Check if the screen was just touched
             clickFlashlight();
             flashlight_click.play();
+
         }
     }
 
@@ -118,17 +111,29 @@ public class GameState extends State{
         ambientLight.setPosition(player.getPositionX()-10, player.getPositionY());
 
 
-        for (Rectangle bound : bounds){     // Check X collision
+        for (Rectangle bound : new Array.ArrayIterator<>(bounds)){     // Check X collision
             if (player.collides(bound)){
                 if (player.getVelX() < 0){
-                    //player.position.x
+                    player.position.x = bound.x + bound.width;
+                    player.setVelocity(0, player.getVelY());
+                } else if (player.getVelX() > 0) {
+                    player.setPosition(bound.x, player.position.y);
+                    player.setVelocity(0, player.getVelY());
                 }
-            }
-            else if (player.getVelY() > 0 && player.collides(bound)){
-                player.setVelocity(player.getVelX(), 0);
+                else if (player.getVelY() > 0){
+                    player.setPosition(player.position.x, bound.y - 32);
+                    player.setVelocity(player.getVelX(), 0);
+                }
+                else if (player.getVelY() < 0){
+                    player.setPosition(player.position.x, bound.y + bound.height);
+                    player.setVelocity(player.getVelX(), 0);
+                }
 
             }
+
+
         }
+
         player.update(dt);
 
         flashlightUpdate();
