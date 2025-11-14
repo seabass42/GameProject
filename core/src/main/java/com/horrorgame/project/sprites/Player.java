@@ -40,6 +40,8 @@ public class Player implements InputProcessor {
     private static final int PLAYER_WIDTH = 20;
     private static final int PLAYER_HEIGHT = 32;
 
+    private int[] inventory;
+
 
     public Player(float x, float y) {
         position.set(x, y);
@@ -53,10 +55,20 @@ public class Player implements InputProcessor {
         footsteps = loadSounds("assets/sounds/player/LightDirt", 4);
 
         hitbox = new Rectangle(x,y,PLAYER_WIDTH,PLAYER_HEIGHT);
+        inventory = new int[4];
+        inventory[0] = 0;
+
+        // Inventory key: 0 = flashlight, 1 = item1, 2 = item2, 3 = item3
     }
     //  Check if player is colliding with something
     public boolean collides(Rectangle rect){
         return hitbox.overlaps(rect);
+    }
+    public int checkInventory(int index){
+        return inventory[index];
+    }
+    public void setItem(int index, int item){
+        inventory[index] = item;
     }
 
 

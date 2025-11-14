@@ -4,6 +4,7 @@ import box2dLight.ConeLight;
 import box2dLight.PointLight;
 import box2dLight.RayHandler;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
@@ -77,9 +78,11 @@ public class GameState extends State{
 
         bounds.add(new Rectangle(0,0, HorrorMain.WIDTH, 112)); // bottom
         bounds.add(new Rectangle(0,0, 96, HorrorMain.HEIGHT)); // left
-        bounds.add(new Rectangle(80, (HorrorMain.HEIGHT - 64), 432, 64)); // top left
+        bounds.add(new Rectangle(80, (HorrorMain.HEIGHT - 64), 448, 64)); // top left
         bounds.add(new Rectangle(656, (HorrorMain.HEIGHT - 64) , 368, 64)); // top right
-        bounds.add(new Rectangle(816, 80, 128, 80));
+        bounds.add(new Rectangle(848, 80, 128, 80)); // lower right corner
+        bounds.add(new Rectangle(992, 160, 192, 224));  // under bridge
+        bounds.add(new Rectangle(992, 464, 192, 208)); // above bridge
 
         bounds.add(new Rectangle(544, HorrorMain.HEIGHT - 64, 80, 32)); // EXIT (Must be last)
 
@@ -88,10 +91,13 @@ public class GameState extends State{
     }
     @Override
     protected void handleInput() {
-        if (Gdx.input.justTouched() && player.hasLight) { // Check if the screen was just touched
+        if (Gdx.input.justTouched() && player.checkInventory(0) == 1) { // Check if the screen was just touched
             clickFlashlight();
             flashlight_click.play();
 
+        }
+        if(Gdx.input.isKeyPressed(Input.Keys.F)){   // F to equip flashlight
+            player.setItem(0, 1);
         }
     }
 
@@ -117,10 +123,10 @@ public class GameState extends State{
                     player.position.x = bound.x + bound.width;
                     player.setVelocity(0, player.getVelY());
                 } else if (player.getVelX() > 0) {
-                    player.setPosition(bound.x, player.position.y);
+                    player.setPosition(bound.x - 20, player.position.y);
                     player.setVelocity(0, player.getVelY());
                 }
-                else if (player.getVelY() > 0){
+                else if (player.getVelY() > 0){    // Check Y collision
                     player.setPosition(player.position.x, bound.y - 32);
                     player.setVelocity(player.getVelX(), 0);
                 }
