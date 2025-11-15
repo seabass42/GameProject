@@ -3,11 +3,9 @@ package com.horrorgame.project.states;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Sound;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
@@ -37,6 +35,7 @@ public class LoadingState extends State {
         label.setPosition(Gdx.graphics.getWidth()/2f, Gdx.graphics.getHeight()/2f, Align.center);
         stage.addActor(label);
 
+
         Gdx.input.setInputProcessor(null);
     }
 
@@ -48,6 +47,11 @@ public class LoadingState extends State {
             // Add other assets (sounds, maps, etc.) here
             manager.load("sounds/objectInteractions/flashlight_click.wav", Sound.class);
             manager.load("sounds/objectInteractions/light-hum.mp3", Sound.class);
+    }
+
+    @Override
+    protected void setDebugMode() {
+
     }
 
     @Override

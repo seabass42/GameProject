@@ -4,26 +4,36 @@ import box2dLight.ConeLight;
 import box2dLight.PointLight;
 import box2dLight.RayHandler;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.maps.tiled.TiledMap;
-import com.badlogic.gdx.maps.tiled.TmxMapLoader;
-import com.badlogic.gdx.maps.tiled.renderers.IsometricTiledMapRenderer;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.physics.box2d.*;
 import com.horrorgame.project.HorrorMain;
+import com.horrorgame.project.sprites.Ball;
+import com.horrorgame.project.sprites.Chest;
+import com.horrorgame.project.sprites.PhysicsSprite;
 import com.horrorgame.project.sprites.Player;
-import jdk.internal.org.jline.terminal.TerminalBuilder;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+
+import java.awt.*;
+import java.util.ArrayList;
 
 public class GameState extends State{
     private AssetManager manager = new AssetManager();
+
+    // Body category bits
+    public static final short CATEGORY_PLAYER = 0x0001; // 1
+    public static final short CATEGORY_BALL   = 0x0002; // 2
+    public static final short CATEGORY_WORLD  = 0x0004; // 4 (other objects)
+
 
 
     //Cursor Position as Vector2
@@ -41,13 +51,19 @@ public class GameState extends State{
     private float deltaTime;
     private float mouseSpeed;
 
+
+    private ArrayList<PhysicsSprite> physicsSprites = new ArrayList<>();
+    private static Ball ball;
+    private static Chest chest;
+
     private static Player player;
+
     public final int tileSize = 16;
     private SpriteBatch batch;
-    private static OrthographicCamera camera = new OrthographicCamera();
+    public static OrthographicCamera camera = new OrthographicCamera();
 
     // --LIGHTING--
-    private static World world = new World(new Vector2(0,0), false);
+    public static World world = new World(new Vector2(0,0), false);
     private RayHandler rayHandler = new RayHandler(world);
     private PointLight ambientLight;
 
@@ -56,51 +72,102 @@ public class GameState extends State{
     private Boolean flashOn = false;
     private Sound flashlight_click;
     private Sound light_hum;
-    long test;
-    //Test background
+
+    //Test background and objects
     private Texture background;
+    private PointLight tempLight;
+
 
     public GameState(GameStateManager gsm, AssetManager manager){
         super(gsm);
         this.manager = manager;
 
+
         background = manager.get("onlytheocean-silent-hill-sm.jpeg", Texture.class);
         flashlight_click = manager.get("sounds/objectInteractions/flashlight_click.wav", Sound.class);
         light_hum = manager.get("sounds/objectInteractions/light-hum.mp3", Sound.class);
-        test = light_hum.loop();
-        player = new Player(0,0);
 
-        Gdx.input.setInputProcessor(player);
-        camera.viewportWidth = Gdx.graphics.getWidth()/2;
-        camera.viewportHeight = Gdx.graphics.getHeight()/2;
+        short COLLIDE_WITH_ALL = (short)(CATEGORY_PLAYER | CATEGORY_BALL | CATEGORY_WORLD);
+
+        player = new Player("player", new Texture("assets/sprites/idleSprites.png"),
+            HorrorMain.WIDTH/2,HorrorMain.HEIGHT/2,80,105);
+        assignCategory(player.getBody(), CATEGORY_PLAYER, COLLIDE_WITH_ALL);
+        physicsSprites.add(player);
+
+        ball = new Ball("ball", new Texture("assets/sprites/ball.png"),
+            HorrorMain.WIDTH/2, (HorrorMain.HEIGHT/2-100),20, false);
+        assignCategory(ball.getBody(),   CATEGORY_BALL,   COLLIDE_WITH_ALL);
+        physicsSprites.add(ball);
+
+        chest = new Chest("chest", new Texture("assets/sprites/chest.png"),
+            HorrorMain.WIDTH/3, HorrorMain.HEIGHT/3, 60, 60, false);
+        assignCategory(chest.getBody(),   CATEGORY_BALL,   COLLIDE_WITH_ALL);
+        physicsSprites.add(chest);
+
+        camera.viewportWidth = HorrorMain.WIDTH;
+        camera.viewportHeight = HorrorMain.HEIGHT;
 
         //Mouse
         prevMouseX = Gdx.input.getX();
         prevMouseY = Gdx.input.getY();
 
-        //Lighting
+
+        /** -----------------LIGHTING-----------------------------------*/
         rayHandler.setCombinedMatrix(camera.combined);
         rayHandler.useDiffuseLight(true); //Stops "draining the life from the colors"/desaturation of textures
-        Color lightColor = new Color(0.45f, 0.35f, 0.65f, 0f); //ambient light color
-        rayHandler.setAmbientLight(Color.BLACK);
+        //ambient light color
+        //rayHandler.setAmbientLight(new Color(0.1125f, 0.075f, 0.160f, 10f));
 
         //Actual Flashlight (testing)
-        flashlight = new ConeLight(rayHandler, 250, Color.WHITE, 350, player.getPositionX(), player.getPositionY(), 0, 45);
+        flashlight = new ConeLight(rayHandler, 1000, Color.WHITE, 700, player.getPosition().x, player.getPosition().y, 0, 15);
         flashlight.setActive(false);
         //Player ambient light
-        ambientLight = new PointLight(rayHandler, 10, Color.GRAY, 500, player.getPositionX(),player.getPositionY());
+        ambientLight = new PointLight(rayHandler, 500, Color.GRAY, 500, player.getPosition().x, player.getPosition().y);
+        // Only affect world objects
+        Filter lightFilter = new Filter();
+        lightFilter.categoryBits = CATEGORY_WORLD; // Light belongs to world
+        lightFilter.maskBits     = CATEGORY_WORLD; // Only casts shadows on world
+        ambientLight.setContactFilter(lightFilter);
+
+        tempLight = new PointLight(rayHandler, 500, Color.WHITE, 10, ball.getPosition().x, ball.getPosition().y);
+
+
+
+
     }
+
+    private void assignCategory(Body body, short category, short mask) {
+        for (Fixture fixture : body.getFixtureList()) {
+            Filter f = fixture.getFilterData();
+            f.categoryBits = category;
+            f.maskBits = mask;
+            fixture.setFilterData(f);
+        }
+    }
+
+
+    @Override
+    protected void setDebugMode() {
+        debugMode = !debugMode;
+    }
+
     @Override
     protected void handleInput() {
         if (Gdx.input.justTouched() && player.hasLight) { // Check if the screen was just touched
             clickFlashlight();
             flashlight_click.play();
         }
+
+        if(Gdx.input.isKeyPressed(Input.Keys.NUM_2) && Gdx.input.isKeyJustPressed(Input.Keys.EQUALS)){
+            setDebugMode();
+        }
     }
 
     @Override
     public void update(float dt) { //Logic
-        camera.update();
+        // Update camera to follow player (optional)
+        camera.position.set(player.getPosition().x, player.getPosition().y, 0);
+
         handleInput();
         //For getting cursor X and Y NOT according to camera
         // (otherwise it gets left behind when the player walks)
@@ -123,13 +190,16 @@ public class GameState extends State{
         prevMouseY = currentMouseY;
 
         //Light Updates
-        ambientLight.setPosition(player.getPositionX(), player.getPositionY());
-
+        ambientLight.setPosition(player.getPosition().x, player.getPosition().y);
+        //ambientLight.setPosition(cursorPosition.x, cursorPosition.y);
+        tempLight.setPosition(ball.getPosition().x, ball.getPosition().y);
 
 
         player.update(dt);
-
+        ball.update();
+        chest.update();
         flashlightUpdate();
+        camera.update();
     }
 
     //METHODS FOR FLASHLIGHT
@@ -137,28 +207,18 @@ public class GameState extends State{
     public void clickFlashlight(){
         flashOn = !flashOn;
         flashlight.setActive(flashOn);
-        light_hum.loop(test);
-        light_hum.setVolume(test, 0.01f);
+        light_hum.loop(0.025f);
     }
     //updates flashlight
     private void flashlightUpdate(){
         if(flashOn) {
-            player.setDirection(cursorPosition.x <= player.getPositionX());
-                if (test == -1) test = light_hum.loop(); // ensure looping starts once
+            player.setDirection(cursorPosition.x <= player.getPosition().x);
 
-                flashlight.setPosition(player.getPositionX(), player.getPositionY());
-                flashlight.setDirection(player.getAngleBetweenObj(player.getVectorPos(), cursorPosition));
+                flashlight.setPosition(player.getPosition().x, player.getPosition().y);
+                flashlight.setDirection(player.getAngleBetweenObj(player.getPosition(), cursorPosition));
 
-
-                // --- Smooth volume control ---
-                float t = Math.min(mouseSpeed / 6000f, 1f);   // normalize 0–1 range (max speed = 6000)
-                t = (float) Math.pow(t, 0.5f);                // smooth easing (square root curve)
-                light_hum.setVolume(test, t);
-
-                System.out.println("mouseSpeed=" + mouseSpeed + " volume=" + t);
             } else {
                 light_hum.stop();
-                test = -1;
             }
     }
 
@@ -166,26 +226,39 @@ public class GameState extends State{
     public void render(SpriteBatch sb) {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // Update camera to follow player (optional)
-        camera.position.set(player.getPositionX()+20, player.getPositionY()+40, 0);
-
+        world.step(1/60f, 6, 2);
 
         // --- Draw player and other sprites ---
         sb.setProjectionMatrix(camera.combined);
         sb.begin();
         sb.draw(background, 0, 0, HorrorMain.WIDTH, HorrorMain.HEIGHT);
         player.render(sb);
+        ball.render(sb);
+        chest.render(sb);
         sb.end();
 
         //Light
-        rayHandler.setCombinedMatrix(camera.combined);
-        rayHandler.updateAndRender();
+        if(debugMode) {
+            sb.begin();
+            for (PhysicsSprite s : physicsSprites) {   // ← every sprite stored here
+                Label label = s.getLabel();
+                label.setPosition(
+                    s.getBody().getPosition().x - s.getBodyWidth() / 2f,
+                    s.getBody().getPosition().y - s.getBodyHeight() / 2f - 20
+                );
+                label.draw(sb, 1f);
+            }
+            sb.end();
+        }else {
+            rayHandler.setCombinedMatrix(camera);
+            rayHandler.updateAndRender();
+        }
 
     }
 
 
     @Override
     public void dispose() {
-
+        world.dispose();
     }
 }
