@@ -62,7 +62,6 @@ public class GameState extends State{
 
     private static Player player;
 
-    public final int tileSize = 16;
     private SpriteBatch batch;
     public static OrthographicCamera camera = new OrthographicCamera();
 
@@ -78,8 +77,6 @@ public class GameState extends State{
     private Sound light_hum;
 
     //Test background and objects
-    private Texture background;
-    private PointLight tempLight;
     private Texture tileset;
     private TextureRegion[][] tiles;
     private int tileSize;
@@ -89,8 +86,6 @@ public class GameState extends State{
         super(gsm);
         this.manager = manager;
 
-
-        background = manager.get("onlytheocean-silent-hill-sm.jpeg", Texture.class);
         flashlight_click = manager.get("sounds/objectInteractions/flashlight_click.wav", Sound.class);
         light_hum = manager.get("sounds/objectInteractions/light-hum.mp3", Sound.class);
 
@@ -102,17 +97,17 @@ public class GameState extends State{
         physicsSprites.add(player);
 
         ball = new Ball("ball", new Texture("assets/sprites/ball.png"),
-            HorrorMain.WIDTH/2, (HorrorMain.HEIGHT/2-100),20, false);
+            HorrorMain.WIDTH/2, (HorrorMain.HEIGHT/2-100),10, false);
         assignCategory(ball.getBody(),   CATEGORY_BALL,   COLLIDE_WITH_ALL);
         physicsSprites.add(ball);
 
         chest = new Chest("chest", new Texture("assets/sprites/chest.png"),
-            HorrorMain.WIDTH/3, HorrorMain.HEIGHT/3, 60, 60, false);
+            HorrorMain.WIDTH/3, HorrorMain.HEIGHT/3, 20, 20, false);
         assignCategory(chest.getBody(),   CATEGORY_BALL,   COLLIDE_WITH_ALL);
         physicsSprites.add(chest);
 
-        camera.viewportWidth = HorrorMain.WIDTH;
-        camera.viewportHeight = HorrorMain.HEIGHT;
+        camera.viewportWidth = HorrorMain.WIDTH/4;
+        camera.viewportHeight = HorrorMain.HEIGHT/4;
 
         //Mouse
         prevMouseX = Gdx.input.getX();
@@ -126,22 +121,16 @@ public class GameState extends State{
         //rayHandler.setAmbientLight(new Color(0.1125f, 0.075f, 0.160f, 10f));
 
         //Actual Flashlight (testing)
-        flashlight = new ConeLight(rayHandler, 1000, Color.WHITE, 700, player.getPosition().x, player.getPosition().y, 0, 15);
+        flashlight = new ConeLight(rayHandler, 1000, Color.WHITE, 200, player.getPosition().x, player.getPosition().y, 0, 15);
         flashlight.setActive(false);
         //Player ambient light
-        ambientLight = new PointLight(rayHandler, 500, Color.GRAY, 500, player.getPosition().x, player.getPosition().y);
+        ambientLight = new PointLight(rayHandler, 500, Color.GRAY, 130, player.getPosition().x, player.getPosition().y);
         // Only affect world objects
         Filter lightFilter = new Filter();
         lightFilter.categoryBits = CATEGORY_WORLD; // Light belongs to world
         lightFilter.maskBits     = CATEGORY_WORLD; // Only casts shadows on world
         ambientLight.setContactFilter(lightFilter);
 
-        tempLight = new PointLight(rayHandler, 500, Color.WHITE, 10, ball.getPosition().x, ball.getPosition().y);
-
-
-
-
-        background = new Texture("testBackground.png");
         tileset = new Texture("TileAssets/Tileset.png");
         tileSize = 16;
         tiles = TextureRegion.split(tileset, tileSize, tileSize);
@@ -203,7 +192,6 @@ public class GameState extends State{
         //Light Updates
         ambientLight.setPosition(player.getPosition().x, player.getPosition().y);
         //ambientLight.setPosition(cursorPosition.x, cursorPosition.y);
-        tempLight.setPosition(ball.getPosition().x, ball.getPosition().y);
 
 
         player.update(dt);
@@ -242,14 +230,12 @@ public class GameState extends State{
         // --- Draw player and other sprites ---
         sb.setProjectionMatrix(camera.combined);
         sb.begin();
-        sb.draw(background, 0, 0, HorrorMain.WIDTH, HorrorMain.HEIGHT);
+        MapDrawer mapDrawer = new MapDrawer(MapData.MainMap);
+        mapDrawer.render(sb);
         player.render(sb);
         ball.render(sb);
         chest.render(sb);
         //sb.draw(background,0,0, HorrorMain.WIDTH,HorrorMain.HEIGHT/2);
-        MapDrawer mapDrawer = new MapDrawer(MapData.MainMap);
-        mapDrawer.render(sb);
-
 
         sb.end();
 
