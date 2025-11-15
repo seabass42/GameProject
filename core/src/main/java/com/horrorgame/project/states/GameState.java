@@ -8,6 +8,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
@@ -16,6 +17,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.*;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.horrorgame.project.HorrorMain;
 import com.horrorgame.project.sprites.Ball;
 import com.horrorgame.project.sprites.Chest;
@@ -25,6 +27,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 
 import java.awt.*;
 import java.util.ArrayList;
+import com.horrorgame.project.Tiles.MapData;
+import com.horrorgame.project.Tiles.MapDrawer;
 
 public class GameState extends State{
     private AssetManager manager = new AssetManager();
@@ -76,6 +80,9 @@ public class GameState extends State{
     //Test background and objects
     private Texture background;
     private PointLight tempLight;
+    private Texture tileset;
+    private TextureRegion[][] tiles;
+    private int tileSize;
 
 
     public GameState(GameStateManager gsm, AssetManager manager){
@@ -134,6 +141,10 @@ public class GameState extends State{
 
 
 
+        background = new Texture("testBackground.png");
+        tileset = new Texture("TileAssets/Tileset.png");
+        tileSize = 16;
+        tiles = TextureRegion.split(tileset, tileSize, tileSize);
     }
 
     private void assignCategory(Body body, short category, short mask) {
@@ -235,6 +246,11 @@ public class GameState extends State{
         player.render(sb);
         ball.render(sb);
         chest.render(sb);
+        //sb.draw(background,0,0, HorrorMain.WIDTH,HorrorMain.HEIGHT/2);
+        MapDrawer mapDrawer = new MapDrawer(MapData.MainMap);
+        mapDrawer.render(sb);
+
+
         sb.end();
 
         //Light
