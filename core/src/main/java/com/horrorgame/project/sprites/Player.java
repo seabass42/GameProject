@@ -31,6 +31,7 @@ public class Player extends PhysicsSprite {
     private float stateTime = 0f;
 
     private ArrayList<Sound> footsteps = new ArrayList<>();
+    private Sound tired;
     private float lastStepX, lastStepY;
     private float STEP_DISTANCE = 15f;
     private final Random random = new Random();
@@ -39,7 +40,7 @@ public class Player extends PhysicsSprite {
     private boolean allowDiagonals = false;
     private float stamina = 1f;             // Stamina level (0 to 1)
     private final float RUN_DEPLETION_TIME = 5f;    // seconds to fully deplete
-    private final float RECOVERY_TIME = 6f; // seconds to recover
+    private final float RECOVERY_TIME = 5f; // seconds to recover
     public boolean isTired = false;
     private boolean canRun = true;
 
@@ -64,6 +65,8 @@ public class Player extends PhysicsSprite {
 
         // Load footstep sounds
         footsteps = loadSounds("assets/sounds/player/LightDirt", 4);
+        // Load tired sound
+        tired = Gdx.audio.newSound(Gdx.files.internal("assets/sounds/player/heartbeat.wav"));
     }
 
     public void update(float dt) {
@@ -73,15 +76,24 @@ public class Player extends PhysicsSprite {
         if (shiftPressed && stamina > 0f && velocity.len() > 0) {
             // Running depletes stamina
             stamina -= dt / RUN_DEPLETION_TIME;
-            if (stamina < 0f) {stamina = 0f; isTired = true;}
+
+            if (stamina <= 0f) {
+                stamina = 0f;
+                if (!isTired) {
+                    tired.play(0.1f);
+                    isTired = true;
+                }
+            }
         } else if (stamina < 1f) {
             // Recover stamina when not running
             stamina += dt / RECOVERY_TIME;
-            if (stamina > 1f) {stamina = 1f; isTired = false;}
+            if (stamina >= 1f) {
+                stamina = 1f;
+                isTired = false;
+            }
         }
 
         // Can run only if stamina > 0
-        System.out.println(stamina + "    " + canRun);
         // Adjust speed
         speed = canRun ? 40 : 20;
         STEP_DISTANCE = canRun ? 20 : 15;
@@ -127,10 +139,6 @@ public class Player extends PhysicsSprite {
         super.update();
     }
 
-    public boolean isTryingToRunWithoutStamina() {
-        return Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) && isTired;
-    }
-    
 
     private ArrayList<Sound> loadSounds(String basePath, int count) {
         ArrayList<Sound> list = new ArrayList<>();

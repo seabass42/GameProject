@@ -69,7 +69,7 @@ public class LoadingState extends State {
         }
         timer += dt;
 
-        if(manager.update() && timer >= 1f) {
+        if(manager.update() && timer >= 2f) {
             manager.finishLoading();
             gsm.set(new GameState(gsm, manager));
         }

@@ -41,6 +41,7 @@ public class GameState extends State{
     //could later be placed in settings (to be placed somewhere else later as global variables)
     private boolean cameraDrag = false;
     private boolean doScreenEffects = true;
+    private float tiredShaderIntensity = 0f;
 
 
     //Body category bits
@@ -157,6 +158,12 @@ public class GameState extends State{
     public void update(float dt) { //Logic
         handleInput();
 
+        // Smoothly approach target intensity
+        float target = player.isTired ? 1f : 0f;
+        float speed = 2f; // how fast the shader ramps up/down
+        tiredShaderIntensity += (target - tiredShaderIntensity) * dt * speed;
+
+
         //For getting cursor X and Y NOT according to camera
         // (otherwise it gets left behind when the player walks)
         cursorToWorldVec.set(Gdx.input.getX(), Gdx.input.getY(), 0);
@@ -179,28 +186,16 @@ public class GameState extends State{
         ball.update();
         chest.update();
         flashlightUpdate();
-        float shakeOffsetX = 0;
-        float shakeOffsetY = 0;
 
-        if (shakeTimer > 0) {
-            shakeTimer -= dt;
-
-            float shake = shakeMagnitude * (shakeTimer / 0.15f);
-            shakeOffsetX = (float)Math.sin(shakeTimer * shakeSpeed) * shake;
-            shakeOffsetY = (float)Math.cos(shakeTimer * shakeSpeed) * shake;
-        }
 
         //Final camera placement
         if(cameraDrag) {camera.position.set(
-            cameraTarget.x + shakeOffsetX,
-            cameraTarget.y + shakeOffsetY,
-            0
-        );}else {camera.position.set(player.getPosition().x, player.getPosition().y, 0);}
+            cameraTarget.x,
+            cameraTarget.y,
+            0);
+        }else {camera.position.set(player.getPosition().x, player.getPosition().y, 0);}
 
         camera.update();
-        if (player.isTryingToRunWithoutStamina()) {
-            shakeTimer = 0.15f;
-        }
     }
 
     //METHODS FOR FLASHLIGHT
@@ -257,9 +252,8 @@ public class GameState extends State{
         // -------------------------------------------------------
         // 2. APPLY SCREEN SHADER OR NOT (based on tired status)
         // -------------------------------------------------------
-        boolean applyShader = (player.isTired && doScreenEffects);
 
-        if (applyShader) {
+        if (doScreenEffects) {
 
             //Configure shader uniforms
             Vector2 center = new Vector2(
@@ -268,6 +262,7 @@ public class GameState extends State{
             );
 
             shaderProgram.bind();
+            shaderProgram.setUniformf("u_tiredIntensity", tiredShaderIntensity);
             shaderProgram.setUniformf("center", center);
             shaderProgram.setUniformf("u_time", time);
             shaderProgram.setUniformf("u_resolution",
