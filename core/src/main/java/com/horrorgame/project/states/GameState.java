@@ -33,10 +33,14 @@ import com.horrorgame.project.Tiles.MapDrawer;
 
 public class GameState extends State{
     private AssetManager manager = new AssetManager();
-    private boolean cameraDrag = false;
     private FrameBuffer fbo;
     private ShaderProgram shaderProgram;
     private float time;
+
+    //camera "dragging behind" (lerping) player and screen effects (CRT Monitor curvature when stamina's empty)
+    //could later be placed in settings (to be placed somewhere else later as global variables)
+    private boolean cameraDrag = false;
+    private boolean doScreenEffects = true;
 
 
     //Body category bits
@@ -250,7 +254,7 @@ public class GameState extends State{
         sb.end();
         fbo.end();
 
-        if(player.isTired) {
+        if(player.isTired && doScreenEffects) {
             sb.setShader(shaderProgram);
         }else sb.setShader(null);
             sb.setProjectionMatrix(new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight()).combined);

@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -36,9 +37,11 @@ public class Player extends PhysicsSprite {
 
     private boolean isWalking = false;
     private boolean allowDiagonals = false;
-    private int runStepCount = 0;
-    private int cooldownStepCount = 0;
+    private float stamina = 1f;             // Stamina level (0 to 1)
+    private final float RUN_DEPLETION_TIME = 5f;    // seconds to fully deplete
+    private final float RECOVERY_TIME = 6f; // seconds to recover
     public boolean isTired = false;
+    private boolean canRun = true;
 
 
     public Player(String name, Texture texture, float x, float y, float width, float height) {
@@ -64,20 +67,27 @@ public class Player extends PhysicsSprite {
     }
 
     public void update(float dt) {
-        // Adjust speed based on Shift key
         boolean shiftPressed = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT);
-
-        boolean isTryingToRun = shiftPressed && !isTired;
-
-        speed = isTryingToRun ? 40 : 20;
-        STEP_DISTANCE = isTryingToRun ? 20 : 15;
-        footsteps = isTryingToRun ? loadSounds("assets/sounds/player/LightDirtRun", 4) :
-            loadSounds("assets/sounds/player/LightDirt", 4);
-        if (isTryingToRun) {
-            walkAnimation.setFrameDuration(0.045f);
-        } else {
-            walkAnimation.setFrameDuration(0.06f);
+        canRun = shiftPressed && !isTired;
+        // Update stamina
+        if (shiftPressed && stamina > 0f && velocity.len() > 0) {
+            // Running depletes stamina
+            stamina -= dt / RUN_DEPLETION_TIME;
+            if (stamina < 0f) {stamina = 0f; isTired = true;}
+        } else if (stamina < 1f) {
+            // Recover stamina when not running
+            stamina += dt / RECOVERY_TIME;
+            if (stamina > 1f) {stamina = 1f; isTired = false;}
         }
+
+        // Can run only if stamina > 0
+        System.out.println(stamina + "    " + canRun);
+        // Adjust speed
+        speed = canRun ? 40 : 20;
+        STEP_DISTANCE = canRun ? 20 : 15;
+        footsteps = canRun ? loadSounds("assets/sounds/player/LightDirtRun", 4)
+            : loadSounds("assets/sounds/player/LightDirt", 4);
+        walkAnimation.setFrameDuration(canRun ? 0.045f : 0.06f);
 
         // Reset movement
         velocity.set(0, 0);
@@ -109,29 +119,9 @@ public class Player extends PhysicsSprite {
                 footsteps.get(random.nextInt(footsteps.size())).play();
                 lastStepX = body.getPosition().x;
                 lastStepY = body.getPosition().y;
-
-                // --- RUNNING STEP COUNTER ---
-                if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) && !isTired) {
-                    runStepCount++;
-
-                    if (runStepCount >= 12) {
-                        isTired = true;       // disable running
-                        runStepCount = 0;     // reset run counter
-                        cooldownStepCount = 0; // start cooldown
-                    }
-                }
-
-                // --- COOLDOWN STEPS ---
-                if (isTired) {
-                    cooldownStepCount++;
-
-                    if (cooldownStepCount >= 20) {
-                        isTired = false;        // running allowed again
-                        cooldownStepCount = 0;
-                    }
-                }
             }
         }
+
         //Move body
         body.setLinearVelocity(velocity.x, velocity.y);
         super.update();
@@ -140,7 +130,7 @@ public class Player extends PhysicsSprite {
     public boolean isTryingToRunWithoutStamina() {
         return Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) && isTired;
     }
-
+    
 
     private ArrayList<Sound> loadSounds(String basePath, int count) {
         ArrayList<Sound> list = new ArrayList<>();
