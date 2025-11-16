@@ -36,6 +36,7 @@ public class GameState extends State{
     private FrameBuffer fbo;
     private ShaderProgram shaderProgram;
     private float time;
+    private ShapeRenderer shapeRenderer = new ShapeRenderer();
 
     //camera "dragging behind" (lerping) player and screen effects (CRT Monitor curvature when stamina's empty)
     //could later be placed in settings (to be placed somewhere else later as global variables)
@@ -59,9 +60,6 @@ public class GameState extends State{
 
     private static Player player;
     private final Vector2 cameraTarget = new Vector2();
-    private float shakeTimer = 0f;
-    private float shakeMagnitude = 1.2f;  // stronger shake
-    private float shakeSpeed = 90f;
 
 
 
@@ -241,10 +239,11 @@ public class GameState extends State{
         // Draw world
         MapDrawer mapDrawer = new MapDrawer(MapData.MainMap);
         mapDrawer.render(sb);
-        player.render(sb);
-        ball.render(sb);
-        chest.render(sb);
-
+        if(!debugMode) {
+            player.render(sb);
+            ball.render(sb);
+            chest.render(sb);
+        }
         sb.end();
         fbo.end();
 
@@ -262,7 +261,7 @@ public class GameState extends State{
             );
 
             shaderProgram.bind();
-            shaderProgram.setUniformf("u_tiredIntensity", tiredShaderIntensity);
+            shaderProgram.setUniformf("u_tiredIntensity", tiredShaderIntensity/2);
             shaderProgram.setUniformf("center", center);
             shaderProgram.setUniformf("u_time", time);
             shaderProgram.setUniformf("u_resolution",
@@ -306,8 +305,10 @@ public class GameState extends State{
         // 4. DEBUG OR LIGHTING
         // -------------------------------------------------------
         if (debugMode) {
-
+            sb.setShader(null);
+            sb.setProjectionMatrix(camera.combined);
             sb.begin();
+
             for (PhysicsSprite s : physicsSprites) {
                 Label label = s.getLabel();
                 label.setPosition(
@@ -323,7 +324,30 @@ public class GameState extends State{
             debugInfo.setPosition(camera.position.x - 157, camera.position.y + 70);
             debugInfo.draw(sb, 1f);
 
+            player.render(sb);
+            ball.render(sb);
+            chest.render(sb);
+
             sb.end();
+
+            // ---- DRAW PHYSICS OUTLINES ----
+            Gdx.gl.glLineWidth(2); // Optional thickness
+
+            shapeRenderer.setProjectionMatrix(camera.combined);
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+
+            shapeRenderer.setColor(Color.RED); // Outline color
+
+            for (PhysicsSprite s : physicsSprites) {
+                float x = s.getBody().getPosition().x - s.getBodyWidth() / 2f;
+                float y = s.getBody().getPosition().y - s.getBodyHeight() / 2f;
+                float w = s.getBodyWidth();
+                float h = s.getBodyHeight();
+
+                shapeRenderer.rect(x, y, w, h);
+            }
+
+            shapeRenderer.end();
 
         } else {
             //Lights activated when outside debugMOde

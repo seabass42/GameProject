@@ -21,7 +21,6 @@ import static com.horrorgame.project.states.State.debugMode;
 
 public abstract class PhysicsSprite extends Sprite {
 
-    private ShapeRenderer shapeRenderer = new ShapeRenderer();
     private Label label;
     private Skin skin = new Skin(Gdx.files.internal("vhsui/vhs-ui.json"));
 
@@ -127,19 +126,6 @@ public abstract class PhysicsSprite extends Sprite {
 
     public void render(SpriteBatch batch) {
         super.draw(batch);
-
-        if(debugMode) {
-            // Draw hitboxes for debugging
-            shapeRenderer.setProjectionMatrix(GameState.camera.combined);
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-            //Draw player hitbox (rectangle)
-            shapeRenderer.setColor(Color.RED);
-            shapeRenderer.rect(getPosition().x - getBodyWidth() / 2,
-                               getPosition().y - getBodyHeight() / 2,
-                                  getBodyWidth(),
-                                  getBodyHeight());
-            shapeRenderer.end();
-        }
     }
 
     public void dispose() {

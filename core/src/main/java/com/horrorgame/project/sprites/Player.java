@@ -17,7 +17,6 @@ import static com.horrorgame.project.states.State.debugMode;
 
 public class Player extends PhysicsSprite {
 
-    private ShapeRenderer shapeRenderer = new ShapeRenderer();
     private Vector2 velocity = new Vector2();
     private float speed = 20;
     private boolean facingLeft = false;
@@ -80,7 +79,7 @@ public class Player extends PhysicsSprite {
             if (stamina <= 0f) {
                 stamina = 0f;
                 if (!isTired) {
-                    tired.play(0.1f);
+                    tired.play(0.04f);
                     isTired = true;
                 }
             }
@@ -92,6 +91,7 @@ public class Player extends PhysicsSprite {
                 isTired = false;
             }
         }
+        System.out.println(stamina + "    " + canRun);
 
         // Can run only if stamina > 0
         // Adjust speed
@@ -170,17 +170,5 @@ public class Player extends PhysicsSprite {
             body.getPosition().y - getHeight() / 2f,
             getWidth(),
             getHeight());
-
-        //Debug hitbox
-        if (debugMode) {
-            shapeRenderer.setProjectionMatrix(GameState.camera.combined);
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-            shapeRenderer.setColor(Color.RED);
-            shapeRenderer.rect(body.getPosition().x - getWidth() / 2f,
-                body.getPosition().y - getHeight() / 2f,
-                getWidth(),
-                getHeight());
-            shapeRenderer.end();
-        }
     }
 }
