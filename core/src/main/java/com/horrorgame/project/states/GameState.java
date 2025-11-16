@@ -7,17 +7,18 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Sound;
-import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.FrameBuffer;
+import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.*;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.horrorgame.project.HorrorMain;
 import com.horrorgame.project.sprites.Ball;
 import com.horrorgame.project.sprites.Chest;
@@ -32,28 +33,19 @@ import com.horrorgame.project.Tiles.MapDrawer;
 
 public class GameState extends State{
     private AssetManager manager = new AssetManager();
+    private boolean cameraDrag = false;
+    private FrameBuffer fbo;
+    private ShaderProgram shaderProgram;
+    private float time;
 
-    // Body category bits
-    public static final short CATEGORY_PLAYER = 0x0001; // 1
-    public static final short CATEGORY_BALL   = 0x0002; // 2
-    public static final short CATEGORY_WORLD  = 0x0004; // 4 (other objects)
 
-
+    //Body category bits
+    private Skin skin;
 
     //Cursor Position as Vector2
     private Vector2 cursorPosition = new Vector2();
     private Vector3 cursorToWorldVec = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
     private Vector2 cursorToPlayer = new Vector2();
-
-    private int prevMouseX;
-    private int prevMouseY;
-    private int currentMouseX;
-    private int currentMouseY;
-    private int deltaX;
-    private int deltaY;
-    private float distance;
-    private float deltaTime;
-    private float mouseSpeed;
 
 
     private ArrayList<PhysicsSprite> physicsSprites = new ArrayList<>();
@@ -61,6 +53,12 @@ public class GameState extends State{
     private static Chest chest;
 
     private static Player player;
+    private final Vector2 cameraTarget = new Vector2();
+    private float shakeTimer = 0f;
+    private float shakeMagnitude = 1.2f;  // stronger shake
+    private float shakeSpeed = 90f;
+
+
 
     private SpriteBatch batch;
     public static OrthographicCamera camera = new OrthographicCamera();
@@ -85,33 +83,32 @@ public class GameState extends State{
     public GameState(GameStateManager gsm, AssetManager manager){
         super(gsm);
         this.manager = manager;
+        fbo = new FrameBuffer(Pixmap.Format.RGBA8888, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
 
+        String vertexShader = Gdx.files.internal("shaders/vertex.glsl").readString();
+        String fragmentShader = Gdx.files.internal("shaders/crt.glsl").readString();
+        shaderProgram = new ShaderProgram(vertexShader,fragmentShader);
+        shaderProgram.pedantic = false;
+
+        skin = manager.get("vhsui/vhs-ui.json", Skin.class);
         flashlight_click = manager.get("sounds/objectInteractions/flashlight_click.wav", Sound.class);
         light_hum = manager.get("sounds/objectInteractions/light-hum.mp3", Sound.class);
 
-        short COLLIDE_WITH_ALL = (short)(CATEGORY_PLAYER | CATEGORY_BALL | CATEGORY_WORLD);
 
         player = new Player("player", new Texture("assets/sprites/idleSprites.png"),
-            HorrorMain.WIDTH/2,HorrorMain.HEIGHT/2,80,105);
-        assignCategory(player.getBody(), CATEGORY_PLAYER, COLLIDE_WITH_ALL);
+            HorrorMain.WIDTH/2,HorrorMain.HEIGHT/2,20,26.25f);
         physicsSprites.add(player);
 
         ball = new Ball("ball", new Texture("assets/sprites/ball.png"),
             HorrorMain.WIDTH/2, (HorrorMain.HEIGHT/2-100),10, false);
-        assignCategory(ball.getBody(),   CATEGORY_BALL,   COLLIDE_WITH_ALL);
         physicsSprites.add(ball);
 
         chest = new Chest("chest", new Texture("assets/sprites/chest.png"),
             HorrorMain.WIDTH/3, HorrorMain.HEIGHT/3, 20, 20, false);
-        assignCategory(chest.getBody(),   CATEGORY_BALL,   COLLIDE_WITH_ALL);
         physicsSprites.add(chest);
 
         camera.viewportWidth = HorrorMain.WIDTH/4;
         camera.viewportHeight = HorrorMain.HEIGHT/4;
-
-        //Mouse
-        prevMouseX = Gdx.input.getX();
-        prevMouseY = Gdx.input.getY();
 
 
         /** -----------------LIGHTING-----------------------------------*/
@@ -122,27 +119,15 @@ public class GameState extends State{
 
         //Actual Flashlight (testing)
         flashlight = new ConeLight(rayHandler, 1000, Color.WHITE, 200, player.getPosition().x, player.getPosition().y, 0, 15);
+        flashlight.setSoftnessLength(80f);
         flashlight.setActive(false);
         //Player ambient light
         ambientLight = new PointLight(rayHandler, 500, Color.GRAY, 130, player.getPosition().x, player.getPosition().y);
-        // Only affect world objects
-        Filter lightFilter = new Filter();
-        lightFilter.categoryBits = CATEGORY_WORLD; // Light belongs to world
-        lightFilter.maskBits     = CATEGORY_WORLD; // Only casts shadows on world
-        ambientLight.setContactFilter(lightFilter);
+        ambientLight.setXray(true);
 
         tileset = new Texture("TileAssets/Tileset.png");
         tileSize = 16;
         tiles = TextureRegion.split(tileset, tileSize, tileSize);
-    }
-
-    private void assignCategory(Body body, short category, short mask) {
-        for (Fixture fixture : body.getFixtureList()) {
-            Filter f = fixture.getFilterData();
-            f.categoryBits = category;
-            f.maskBits = mask;
-            fixture.setFilterData(f);
-        }
     }
 
 
@@ -165,40 +150,52 @@ public class GameState extends State{
 
     @Override
     public void update(float dt) { //Logic
-        // Update camera to follow player (optional)
-        camera.position.set(player.getPosition().x, player.getPosition().y, 0);
-
         handleInput();
+
         //For getting cursor X and Y NOT according to camera
         // (otherwise it gets left behind when the player walks)
         cursorToWorldVec.set(Gdx.input.getX(), Gdx.input.getY(), 0);
         camera.unproject(cursorToWorldVec);
         cursorPosition.set(cursorToWorldVec.x, cursorToWorldVec.y);
         cursorToPlayer.set(Gdx.input.getX(), Gdx.input.getY());
-        //detecting cursor speed
-        currentMouseX = Gdx.input.getX();
-        currentMouseY = Gdx.input.getY();
-        deltaX = Gdx.input.getX() - prevMouseX;
-        deltaY = Gdx.input.getY() - prevMouseY;
-        //calculation change in distance of cursor/mouse
-        distance = (float) Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-        deltaTime = Gdx.graphics.getDeltaTime(); // Time in seconds since last frame
-
-        mouseSpeed = distance / deltaTime;
-
-        prevMouseX = currentMouseX;
-        prevMouseY = currentMouseY;
 
         //Light Updates
         ambientLight.setPosition(player.getPosition().x, player.getPosition().y);
         //ambientLight.setPosition(cursorPosition.x, cursorPosition.y);
+
+        // Follow player but NOT instantly — this creates softness that allows shake to work
+        float lerp = 6f;  // increase for tighter following
+        cameraTarget.x += (player.getPosition().x - cameraTarget.x) * lerp * dt;
+        cameraTarget.y += (player.getPosition().y - cameraTarget.y) * lerp * dt;
+
 
 
         player.update(dt);
         ball.update();
         chest.update();
         flashlightUpdate();
+        float shakeOffsetX = 0;
+        float shakeOffsetY = 0;
+
+        if (shakeTimer > 0) {
+            shakeTimer -= dt;
+
+            float shake = shakeMagnitude * (shakeTimer / 0.15f);
+            shakeOffsetX = (float)Math.sin(shakeTimer * shakeSpeed) * shake;
+            shakeOffsetY = (float)Math.cos(shakeTimer * shakeSpeed) * shake;
+        }
+
+        //Final camera placement
+        if(cameraDrag) {camera.position.set(
+            cameraTarget.x + shakeOffsetX,
+            cameraTarget.y + shakeOffsetY,
+            0
+        );}else {camera.position.set(player.getPosition().x, player.getPosition().y, 0);}
+
         camera.update();
+        if (player.isTryingToRunWithoutStamina()) {
+            shakeTimer = 0.15f;
+        }
     }
 
     //METHODS FOR FLASHLIGHT
@@ -221,37 +218,70 @@ public class GameState extends State{
             }
     }
 
+
+
     @Override
     public void render(SpriteBatch sb) {
+        fbo.begin();
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        time+=Gdx.graphics.getDeltaTime();
+        sb.setShader(null);
 
+        // pass in the following to the fragment glsl scripts
+        Vector2 v = new Vector2(Gdx.graphics.getWidth()/2, Gdx.graphics.getHeight()/2);
+        v.x = v.x / Gdx.graphics.getWidth();
+        v.y = v.y / Gdx.graphics.getHeight();
+        shaderProgram.setUniformf("center", v);
+        shaderProgram.setUniformf("u_time", time);
+        shaderProgram.setUniformf("u_resolution", Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+        sb.setProjectionMatrix(camera.combined);
+        sb.begin();
+        // your existing world & sprites
         world.step(1/60f, 6, 2);
 
         // --- Draw player and other sprites ---
-        sb.setProjectionMatrix(camera.combined);
-        sb.begin();
         MapDrawer mapDrawer = new MapDrawer(MapData.MainMap);
         mapDrawer.render(sb);
         player.render(sb);
         ball.render(sb);
         chest.render(sb);
-        //sb.draw(background,0,0, HorrorMain.WIDTH,HorrorMain.HEIGHT/2);
 
         sb.end();
+        fbo.end();
 
-        //Light
+        if(player.isTired) {
+            sb.setShader(shaderProgram);
+        }else sb.setShader(null);
+            sb.setProjectionMatrix(new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight()).combined);
+
+            sb.begin();
+            Texture fboTexture = fbo.getColorBufferTexture();
+            sb.draw(
+                fboTexture,
+                -HorrorMain.WIDTH / 2, -HorrorMain.HEIGHT / 2,                                  // x, y
+                Gdx.graphics.getWidth(), Gdx.graphics.getHeight(),  // width, height
+                0, 0,                                  // srcX, srcY
+                fboTexture.getWidth(), fboTexture.getHeight(),     // srcWidth, srcHeight
+                false, true                             // flipX, flipY
+            );
+
+            sb.end();
+
         if(debugMode) {
             sb.begin();
             for (PhysicsSprite s : physicsSprites) {   // ← every sprite stored here
                 Label label = s.getLabel();
                 label.setPosition(
-                    s.getBody().getPosition().x - s.getBodyWidth() / 2f,
-                    s.getBody().getPosition().y - s.getBodyHeight() / 2f - 20
-                );
+                    s.getBody().getPosition().x-s.getBodyWidth()/2, s.getBody().getPosition().y);
+                label.setFontScale(0.3f);
                 label.draw(sb, 1f);
             }
+            Label debugInfo = new Label("Press 2 and 7 to exit debugMode", skin);
+            debugInfo.setFontScale(0.2f); debugInfo.setPosition(camera.position.x - 157, camera.position.y + 70);
+            debugInfo.draw(sb, 1f);
             sb.end();
-        }else {
+        }else {//Light disabled during debugMode
             rayHandler.setCombinedMatrix(camera);
             rayHandler.updateAndRender();
         }
@@ -262,5 +292,6 @@ public class GameState extends State{
     @Override
     public void dispose() {
         world.dispose();
+        shaderProgram.dispose();
     }
 }

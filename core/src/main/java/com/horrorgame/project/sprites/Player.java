@@ -10,19 +10,13 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
 import com.horrorgame.project.states.GameState;
-import com.horrorgame.project.states.State;
-
 import java.util.ArrayList;
 import java.util.Random;
-
-import static com.horrorgame.project.states.GameState.world;
 import static com.horrorgame.project.states.State.debugMode;
 
 public class Player extends PhysicsSprite {
 
     private ShapeRenderer shapeRenderer = new ShapeRenderer();
-    private Vector2 centerOfPlayer = new Vector2();
-    //private Texture playerTexture;
     private Vector2 velocity = new Vector2();
     private float speed = 20;
     private boolean facingLeft = false;
@@ -37,30 +31,25 @@ public class Player extends PhysicsSprite {
 
     private ArrayList<Sound> footsteps = new ArrayList<>();
     private float lastStepX, lastStepY;
-    private final float STEP_DISTANCE = 20f;
+    private float STEP_DISTANCE = 15f;
     private final Random random = new Random();
 
     private boolean isWalking = false;
     private boolean allowDiagonals = false;
+    private int runStepCount = 0;
+    private int cooldownStepCount = 0;
+    public boolean isTired = false;
 
-    // Desired visual scale
-    private static final float SCALE = 0.25f; // 25% of original size
 
     public Player(String name, Texture texture, float x, float y, float width, float height) {
         super(name, texture, x, y, width, height, false);
 
-        // Scale sprite visually
-        float visualWidth = width * SCALE;
-        float visualHeight = height * SCALE;
-        setSize(visualWidth, visualHeight);
+        setSize(width, height);
         setOriginCenter(); // makes rotation around the sprite center
 
         // Create matching Box2D body
-        setBoxFixture(visualWidth, visualHeight);
+        setBoxFixture(width, height);
         body.setType(BodyDef.BodyType.KinematicBody); // ignore collisions but still movable
-
-        // Set initial center
-        centerOfPlayer.set(x + visualWidth / 2f, y + visualHeight / 2f);
 
         // Load animations
         atlas = new TextureAtlas(Gdx.files.internal("assets/sprites/idleSprites.atlas"));
@@ -76,13 +65,18 @@ public class Player extends PhysicsSprite {
 
     public void update(float dt) {
         // Adjust speed based on Shift key
-        speed = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) ? 40 : 20;
-        if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)) {
+        boolean shiftPressed = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT);
+
+        boolean isTryingToRun = shiftPressed && !isTired;
+
+        speed = isTryingToRun ? 40 : 20;
+        STEP_DISTANCE = isTryingToRun ? 20 : 15;
+        footsteps = isTryingToRun ? loadSounds("assets/sounds/player/LightDirtRun", 4) :
+            loadSounds("assets/sounds/player/LightDirt", 4);
+        if (isTryingToRun) {
             walkAnimation.setFrameDuration(0.045f);
-            footsteps = loadSounds("assets/sounds/player/LightDirtRun", 4);
         } else {
             walkAnimation.setFrameDuration(0.06f);
-            footsteps = loadSounds("assets/sounds/player/LightDirt", 4);
         }
 
         // Reset movement
@@ -102,10 +96,10 @@ public class Player extends PhysicsSprite {
             else if (Gdx.input.isKeyPressed(Input.Keys.D)) { velocity.x = speed; facingLeft = false; }
         }
 
-        // Walking?
+        //Walking
         isWalking = velocity.len() > 0;
 
-        // Footstep sounds
+        //Footstep sounds
         if (isWalking) {
             stateTime += dt;
             float dx = body.getPosition().x - lastStepX;
@@ -115,16 +109,38 @@ public class Player extends PhysicsSprite {
                 footsteps.get(random.nextInt(footsteps.size())).play();
                 lastStepX = body.getPosition().x;
                 lastStepY = body.getPosition().y;
+
+                // --- RUNNING STEP COUNTER ---
+                if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) && !isTired) {
+                    runStepCount++;
+
+                    if (runStepCount >= 12) {
+                        isTired = true;       // disable running
+                        runStepCount = 0;     // reset run counter
+                        cooldownStepCount = 0; // start cooldown
+                    }
+                }
+
+                // --- COOLDOWN STEPS ---
+                if (isTired) {
+                    cooldownStepCount++;
+
+                    if (cooldownStepCount >= 20) {
+                        isTired = false;        // running allowed again
+                        cooldownStepCount = 0;
+                    }
+                }
             }
         }
-
-        // Move body
+        //Move body
         body.setLinearVelocity(velocity.x, velocity.y);
         super.update();
-
-        centerOfPlayer.x = body.getPosition().x;
-        centerOfPlayer.y = body.getPosition().y;
     }
+
+    public boolean isTryingToRunWithoutStamina() {
+        return Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) && isTired;
+    }
+
 
     private ArrayList<Sound> loadSounds(String basePath, int count) {
         ArrayList<Sound> list = new ArrayList<>();
@@ -157,7 +173,7 @@ public class Player extends PhysicsSprite {
             getWidth(),
             getHeight());
 
-        // Debug hitbox
+        //Debug hitbox
         if (debugMode) {
             shapeRenderer.setProjectionMatrix(GameState.camera.combined);
             shapeRenderer.begin(ShapeRenderer.ShapeType.Line);

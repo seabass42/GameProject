@@ -101,7 +101,7 @@ public abstract class PhysicsSprite extends Sprite {
         fixtureDef.restitution = 0.9f; // Circles can be bouncier
 
         body.createFixture(fixtureDef);
-        body.setLinearDamping(3f);
+        body.setLinearDamping(2f);
         body.setFixedRotation(true);
         shape.dispose();
     }

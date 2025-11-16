@@ -44,7 +44,8 @@ public class LoadingState extends State {
             // GameState assets
             if(!manager.isLoaded("onlytheocean-silent-hill-sm.jpeg"))
                 manager.load("onlytheocean-silent-hill-sm.jpeg", Texture.class);
-            // Add other assets (sounds, maps, etc.) here
+            //Add other assets (sounds, maps, etc.) here
+            manager.load("vhsui/vhs-ui.json", Skin.class);
             manager.load("sounds/objectInteractions/flashlight_click.wav", Sound.class);
             manager.load("sounds/objectInteractions/light-hum.mp3", Sound.class);
     }
