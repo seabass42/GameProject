@@ -19,7 +19,7 @@ void main() {
 
     // --- Pulsing chromatic aberration ---
     float baseShift = 0.05;
-    float intensity = 0.3;
+    float intensity = 0.05;
     float pulse = pow(abs(sin(u_time * 3.0)), 0.4);
     float shift = baseShift + pulse * intensity;
     vec2 aberr = dir * shift;
@@ -32,7 +32,7 @@ void main() {
     // --- Vignette ---
     float dist = length(uv - center);
     float vignette = smoothstep(0.7, 0.5, dist);
-    vignette += 0.1 * sin(u_time * 2.0);
+    vignette += 0.1 * sin(u_time * 3.0);
     color.rgb *= vignette;
 
     // --- Scanlines ---

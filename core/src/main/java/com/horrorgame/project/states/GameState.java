@@ -67,6 +67,7 @@ public class GameState extends State{
     private SpriteBatch batch;
     public static OrthographicCamera camera = new OrthographicCamera();
 
+
     // --LIGHTING--
     public static World world = new World(new Vector2(0,0), false);
     private RayHandler rayHandler = new RayHandler(world);
@@ -226,25 +227,23 @@ public class GameState extends State{
 
     @Override
     public void render(SpriteBatch sb) {
+
+        // -------------------------------------------------------
+        // 1. DRAW WORLD INTO FBO (the framebufferer)
+        // -------------------------------------------------------
         fbo.begin();
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        time+=Gdx.graphics.getDeltaTime();
-        sb.setShader(null);
 
-        // pass in the following to the fragment glsl scripts
-        Vector2 v = new Vector2(Gdx.graphics.getWidth()/2, Gdx.graphics.getHeight()/2);
-        v.x = v.x / Gdx.graphics.getWidth();
-        v.y = v.y / Gdx.graphics.getHeight();
-        shaderProgram.setUniformf("center", v);
-        shaderProgram.setUniformf("u_time", time);
-        shaderProgram.setUniformf("u_resolution", Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        time += Gdx.graphics.getDeltaTime();
 
+        sb.setShader(null); // Always render world normally inside FBO
         sb.setProjectionMatrix(camera.combined);
+
         sb.begin();
-        // your existing world & sprites
+
         world.step(1/60f, 6, 2);
 
-        // --- Draw player and other sprites ---
+        // Draw world
         MapDrawer mapDrawer = new MapDrawer(MapData.MainMap);
         mapDrawer.render(sb);
         player.render(sb);
@@ -254,43 +253,90 @@ public class GameState extends State{
         sb.end();
         fbo.end();
 
-        if(player.isTired && doScreenEffects) {
-            sb.setShader(shaderProgram);
-        }else sb.setShader(null);
-            sb.setProjectionMatrix(new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight()).combined);
 
-            sb.begin();
-            Texture fboTexture = fbo.getColorBufferTexture();
-            sb.draw(
-                fboTexture,
-                -HorrorMain.WIDTH / 2, -HorrorMain.HEIGHT / 2,                                  // x, y
-                Gdx.graphics.getWidth(), Gdx.graphics.getHeight(),  // width, height
-                0, 0,                                  // srcX, srcY
-                fboTexture.getWidth(), fboTexture.getHeight(),     // srcWidth, srcHeight
-                false, true                             // flipX, flipY
+        // -------------------------------------------------------
+        // 2. APPLY SCREEN SHADER OR NOT (based on tired status)
+        // -------------------------------------------------------
+        boolean applyShader = (player.isTired && doScreenEffects);
+
+        if (applyShader) {
+
+            //Configure shader uniforms
+            Vector2 center = new Vector2(
+                (float)Gdx.graphics.getWidth() / 2f / Gdx.graphics.getWidth(),
+                (float)Gdx.graphics.getHeight() / 2f / Gdx.graphics.getHeight()
             );
 
-            sb.end();
+            shaderProgram.bind();
+            shaderProgram.setUniformf("center", center);
+            shaderProgram.setUniformf("u_time", time);
+            shaderProgram.setUniformf("u_resolution",
+                Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
-        if(debugMode) {
+            sb.setShader(shaderProgram);
+
+        } else {
+            sb.setShader(null);
+        }
+
+
+        // -------------------------------------------------------
+        // 3. DRAW FBO TO SCREEN (fullscreen pass)
+        // -------------------------------------------------------
+        OrthographicCamera screenCam =
+            new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        screenCam.position.set(0, 0, 0);
+        screenCam.update();
+
+        sb.setProjectionMatrix(screenCam.combined);
+        sb.begin();
+
+        Texture tex = fbo.getColorBufferTexture();
+
+        sb.draw(
+            tex,
+            -Gdx.graphics.getWidth() / 2f,
+            -Gdx.graphics.getHeight() / 2f,
+            Gdx.graphics.getWidth(),
+            Gdx.graphics.getHeight(),
+            0, 0,
+            tex.getWidth(), tex.getHeight(),
+            false, true
+        );
+
+        sb.end();
+
+
+        // -------------------------------------------------------
+        // 4. DEBUG OR LIGHTING
+        // -------------------------------------------------------
+        if (debugMode) {
+
             sb.begin();
-            for (PhysicsSprite s : physicsSprites) {   // ← every sprite stored here
+            for (PhysicsSprite s : physicsSprites) {
                 Label label = s.getLabel();
                 label.setPosition(
-                    s.getBody().getPosition().x-s.getBodyWidth()/2, s.getBody().getPosition().y);
+                    s.getBody().getPosition().x - s.getBodyWidth() / 2f,
+                    s.getBody().getPosition().y
+                );
                 label.setFontScale(0.3f);
                 label.draw(sb, 1f);
             }
+
             Label debugInfo = new Label("Press 2 and 7 to exit debugMode", skin);
-            debugInfo.setFontScale(0.2f); debugInfo.setPosition(camera.position.x - 157, camera.position.y + 70);
+            debugInfo.setFontScale(0.2f);
+            debugInfo.setPosition(camera.position.x - 157, camera.position.y + 70);
             debugInfo.draw(sb, 1f);
+
             sb.end();
-        }else {//Light disabled during debugMode
+
+        } else {
+            //Lights activated when outside debugMOde
             rayHandler.setCombinedMatrix(camera);
             rayHandler.updateAndRender();
         }
-
     }
+
 
 
     @Override
