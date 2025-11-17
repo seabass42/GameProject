@@ -17,12 +17,12 @@ public class GameStateManager {
     }
 
     public void pop(){
-        states.pop();
-    }   //Remove state
+        states.pop().dispose();
+    }
 
     public void update(float dt){
         states.peek().update(dt);
-    }   //Use the update method of the state
+    }
 
     public void render(SpriteBatch sb){ // Use the render method of the state
         states.peek().render(sb);
@@ -30,5 +30,10 @@ public class GameStateManager {
     public void set(State state){
         states.pop().dispose();
         states.push(state);
+    }
+    public void resize(int width, int height){
+        if (!states.isEmpty()){
+            states.peek().resize(width, height);
+        }
     }
 }

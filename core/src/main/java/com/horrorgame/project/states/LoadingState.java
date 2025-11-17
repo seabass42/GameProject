@@ -47,6 +47,8 @@ public class LoadingState extends State {
                 manager.load("onlytheocean-silent-hill-sm.jpeg", Texture.class);
             // Add other assets (sounds, maps, etc.) here
             manager.load("sounds/objectInteractions/flashlight_click.wav", Sound.class);
+            manager.load("House/House.png", Texture.class);
+
     }
 
     @Override
@@ -78,6 +80,10 @@ public class LoadingState extends State {
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         stage.draw();
+    }
+    @Override
+    public void resize(int width, int height){
+        stage.getViewport().update(width, height);
     }
 
     @Override

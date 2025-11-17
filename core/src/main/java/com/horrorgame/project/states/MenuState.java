@@ -3,8 +3,8 @@ package com.horrorgame.project.states;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Sound;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -17,35 +17,30 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.horrorgame.project.HorrorMain;
 
-import java.util.concurrent.TimeUnit;
-
-
 public class MenuState extends State {
-    private AssetManager manager = new AssetManager();
+    private AssetManager manager;
 
     private Texture background;
     private Stage stage;
     private Skin skin;
     private Table table;
     private TextButton playButton, exitButton, creditsButton;
-    private Rectangle textBox;
-    private ShapeRenderer shapeRenderer;
     private Label title;
-    private Boolean playOnce = false;
+    private boolean playOnce = false;
     private final Sound hoverSelect;
 
     public MenuState(GameStateManager gsm, AssetManager manager){
         super(gsm); //Initialize background and ui skin
         this.manager = manager;
-
         background = manager.get("onlytheocean-silent-hill-sm.jpeg", Texture.class);
         hoverSelect = manager.get("sounds/gui/hoverSelect.wav", Sound.class);
         skin = manager.get("vhsui/vhs-ui.json", Skin.class);
 
-        stage = new Stage(new ScreenViewport()); //Set up stage
+        stage = new Stage(new FitViewport(HorrorMain.WIDTH, HorrorMain.HEIGHT)); //Set up stage
         Gdx.input.setInputProcessor(stage);
 
         table = new Table();    //Set up table onto stage
@@ -65,15 +60,17 @@ public class MenuState extends State {
         table.row();
         table.add(exitButton);
         //table.setDebug(true);
+
+        onChange(playButton, () -> gsm.set(new LoadingState(gsm, manager)));// Buttons made functional
+
+        onChange(exitButton, () -> Gdx.app.exit());
     }
 
 
 
     @Override
     protected void handleInput() {
-        onChange(playButton, () -> gsm.set(new LoadingState(gsm, manager)));// Buttons made functional
 
-        onChange(exitButton, () -> Gdx.app.exit());
     }
 
     private void onPlayClicked() {
@@ -92,8 +89,8 @@ public class MenuState extends State {
             hoverSelect.play();
             playOnce = true;
         }else if(!buttonHover()){playOnce = false;}
-        handleInput();
-        stage.getViewport().update(HorrorMain.WIDTH, HorrorMain.HEIGHT, true);
+
+
     }
 
     @Override
@@ -105,18 +102,22 @@ public class MenuState extends State {
         stage.act(Gdx.graphics.getDeltaTime());
         stage.draw();
 
+
     }
 
     private Boolean buttonHover(){
-
-        if(playButton.isOver() || exitButton.isOver() || creditsButton.isOver())
-            return true;
-        else
-            return false;
+        return playButton.isOver() ||
+               exitButton.isOver() ||
+               creditsButton.isOver();
+    }
+    @Override
+    public void resize(int width, int height){
+        stage.getViewport().update(width, height, true);
     }
 
     @Override
     public void dispose() {
+        stage.dispose();
 
     }
 

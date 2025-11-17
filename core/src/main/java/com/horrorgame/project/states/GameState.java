@@ -10,6 +10,7 @@ import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
@@ -23,19 +24,23 @@ import com.horrorgame.project.sprites.Player;
 
 public class GameState extends State{
     private AssetManager manager;
+    private MapDrawer mapDrawer, mapDrawer2;
 
     //Cursor Position as Vector2
     private Vector2 cursorPosition = new Vector2();
     private Vector3 cursorToWorldVec = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
     private Vector2 cursorToPlayer = new Vector2();
-    private static Player player;
+    private Player player;
 
     //  Collision
     private Array<Rectangle> bounds;
-
+    private Rectangle houseEntrance;
+    private Texture house;
+    private final int HOUSE_HEIGHT = 105;
+    private final int HOUSE_WIDTH = 116;
 
     private SpriteBatch batch;
-    private static OrthographicCamera camera = new OrthographicCamera();
+    private OrthographicCamera camera = new OrthographicCamera();
 
     // --LIGHTING--
     private World world = new World(new Vector2(0,0), false);
@@ -53,10 +58,15 @@ public class GameState extends State{
         super(gsm);
         this.manager = manager;
         bounds = new Array<>();
+        mapDrawer = new MapDrawer(MapData.MainMap);
+        mapDrawer2 = new MapDrawer(MapData.MainMapLayer2);
 
+        //Player
         player = new Player(HorrorMain.WIDTH/2,HorrorMain.HEIGHT/2);
         Gdx.input.setInputProcessor(player);
+        house = manager.get("House/House.png", Texture.class);
 
+        // Camera
         camera = new OrthographicCamera();
         camera.viewportWidth = HorrorMain.WIDTH/3.5f;
         camera.viewportHeight = HorrorMain.HEIGHT/3.5f;
@@ -75,19 +85,7 @@ public class GameState extends State{
         //Player ambient light
         ambientLight = new PointLight(rayHandler, 10, Color.GRAY, 100, player.getPositionX(),player.getPositionY());
 
-
-        bounds.add(new Rectangle(0,0, HorrorMain.WIDTH, 112)); // bottom
-        bounds.add(new Rectangle(0,0, 96, HorrorMain.HEIGHT)); // left
-        bounds.add(new Rectangle(80, (HorrorMain.HEIGHT - 64), 448, 64)); // top left
-        bounds.add(new Rectangle(656, (HorrorMain.HEIGHT - 64) , 368, 64)); // top right
-        bounds.add(new Rectangle(848, 80, 128, 80)); // lower right corner
-        bounds.add(new Rectangle(992, 160, 192, 224));  // under bridge
-        bounds.add(new Rectangle(992, 464, 192, 208)); // above bridge
-
-        bounds.add(new Rectangle(544, HorrorMain.HEIGHT - 64, 80, 32)); // EXIT (Must be last)
-
-
-
+        createBounds(bounds);
     }
     @Override
     protected void handleInput() {
@@ -117,7 +115,7 @@ public class GameState extends State{
         ambientLight.setPosition(player.getPositionX()-10, player.getPositionY());
 
 
-        for (Rectangle bound : new Array.ArrayIterator<>(bounds)){     // Check X collision
+        for (Rectangle bound : bounds){     // Check X collision
             if (player.collides(bound)){
                 if (player.getVelX() < 0){
                     player.position.x = bound.x + bound.width;
@@ -171,24 +169,14 @@ public class GameState extends State{
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         // Update camera to follow player (optional)
-        camera.position.set(player.getPositionX() - 10, player.getPositionY() + 0, 0);
         camera.update();
-
-
-
         // --- Draw player and other sprites ---
         sb.setProjectionMatrix(camera.combined);
         sb.begin();
-
-        MapDrawer mapDrawer = new MapDrawer(MapData.MainMap);
         mapDrawer.render(sb);
-        MapDrawer second = new MapDrawer(MapData.MainMapLayer2);
-        second.render(sb);
-
+        mapDrawer2.render(sb);
+        sb.draw(house, 144, 544, HOUSE_WIDTH, HOUSE_HEIGHT);
         player.render(sb);
-
-
-
         sb.end();
 
         //Light
@@ -196,10 +184,32 @@ public class GameState extends State{
         rayHandler.updateAndRender();
 
     }
+    private void createBounds(Array<Rectangle> bounds){
+        bounds.add(new Rectangle(0,0, HorrorMain.WIDTH, 112)); // bottom
+        bounds.add(new Rectangle(0,0, 96, HorrorMain.HEIGHT)); // left
+        bounds.add(new Rectangle(80, (HorrorMain.HEIGHT - 64), 448, 64)); // top left
+        bounds.add(new Rectangle(656, (HorrorMain.HEIGHT - 64) , 368, 64)); // top right
+        bounds.add(new Rectangle(848, 80, 128, 80)); // lower right corner
+        bounds.add(new Rectangle(992, 160, 192, 224));  // under bridge
+        bounds.add(new Rectangle(992, 464, 192, 208)); // above bridge
 
+        bounds.add(new Rectangle(544, HorrorMain.HEIGHT - 64, 80, 32)); // EXIT (MUST be last)
+    }
+    @Override
+    public void resize(int width, int height){
+        camera.viewportWidth = width / 3.5f;
+        camera.viewportHeight = height / 3.5f;
+        camera.update();
+
+        rayHandler.resizeFBO(width, height);
+    }
 
     @Override
-    public void dispose() {
-
+    public void dispose() { // Prevent memory leaks!
+        rayHandler.dispose();
+        world.dispose();
+        flashlight.dispose();
+        ambientLight.dispose();
+        manager.dispose();
     }
 }

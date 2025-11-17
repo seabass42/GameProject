@@ -83,26 +83,26 @@ public class Player implements InputProcessor {
 
         // Determine movement direction
         if(allowDiagonals) {
-            if(Gdx.input.isKeyPressed(Input.Keys.W)) walkSpeed.y = speed;
-            if(Gdx.input.isKeyPressed(Input.Keys.S)) walkSpeed.y = -speed;
-            if(Gdx.input.isKeyPressed(Input.Keys.A)) {
+            if(Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP)) walkSpeed.y = speed;
+            if(Gdx.input.isKeyPressed(Input.Keys.S)  || Gdx.input.isKeyPressed(Input.Keys.DOWN)) walkSpeed.y = -speed;
+            if(Gdx.input.isKeyPressed(Input.Keys.A)  || Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
                 walkSpeed.x = -speed;
                 facingLeft = true;
             }
-            if(Gdx.input.isKeyPressed(Input.Keys.D)) {
+            if(Gdx.input.isKeyPressed(Input.Keys.D)  || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
                 walkSpeed.x = speed;
                 facingLeft = false;
             }
         } else {
             // Prevent diagonal: only move in one axis at a time (vertical first)
-            if(Gdx.input.isKeyPressed(Input.Keys.W)) {
+            if(Gdx.input.isKeyPressed(Input.Keys.W)  || Gdx.input.isKeyPressed(Input.Keys.UP)) {
                 walkSpeed.y = speed;
-            }else if(Gdx.input.isKeyPressed(Input.Keys.S)) {
+            }else if(Gdx.input.isKeyPressed(Input.Keys.S)  || Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
                 walkSpeed.y = -speed;
-            }else if(Gdx.input.isKeyPressed(Input.Keys.A)) {
+            }else if(Gdx.input.isKeyPressed(Input.Keys.A)  || Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
                 walkSpeed.x = -speed;
                 facingLeft = true;
-            } else if(Gdx.input.isKeyPressed(Input.Keys.D)) {
+            } else if(Gdx.input.isKeyPressed(Input.Keys.D)  || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
                 walkSpeed.x = speed;
                 facingLeft = false;
             }
