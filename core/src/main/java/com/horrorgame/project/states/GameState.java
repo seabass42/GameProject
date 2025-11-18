@@ -14,11 +14,13 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.*;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.utils.Array;
 import com.horrorgame.project.HorrorMain;
 import com.horrorgame.project.sprites.Ball;
 import com.horrorgame.project.sprites.Chest;
@@ -83,6 +85,9 @@ public class GameState extends State{
     private TextureRegion[][] tiles;
     private int tileSize;
 
+    //  Collision
+    private Array<Rectangle> bounds = new Array<>();
+
 
     public GameState(GameStateManager gsm, AssetManager manager){
         super(gsm);
@@ -132,6 +137,22 @@ public class GameState extends State{
         tileset = new Texture("TileAssets/Tileset.png");
         tileSize = 16;
         tiles = TextureRegion.split(tileset, tileSize, tileSize);
+
+        createBounds(bounds);
+
+    }
+
+    private void createBounds(Array<Rectangle> bounds) {
+        //Map hitboxes
+        bounds.add(new com.badlogic.gdx.math.Rectangle(0,0, HorrorMain.WIDTH, 112)); // bottom
+        bounds.add(new com.badlogic.gdx.math.Rectangle(0,0, 96, HorrorMain.HEIGHT)); // left
+        bounds.add(new com.badlogic.gdx.math.Rectangle(80, (HorrorMain.HEIGHT - 64), 448, 64)); // top left
+        bounds.add(new com.badlogic.gdx.math.Rectangle(656, (HorrorMain.HEIGHT - 64) , 368, 64)); // top right
+        bounds.add(new com.badlogic.gdx.math.Rectangle(848, 80, 128, 80)); // lower right corner
+        bounds.add(new com.badlogic.gdx.math.Rectangle(992, 160, 192, 224));  // under bridge
+        bounds.add(new com.badlogic.gdx.math.Rectangle(992, 464, 192, 208)); // above bridge
+
+        bounds.add(new Rectangle(544, HorrorMain.HEIGHT - 64, 80, 32)); // EXIT (Must be last)
     }
 
 
@@ -142,14 +163,20 @@ public class GameState extends State{
 
     @Override
     protected void handleInput() {
-        if (Gdx.input.justTouched() && player.hasLight) { // Check if the screen was just touched
-            clickFlashlight();
-            flashlight_click.play();
-        }
-
+        //Debug
         if(Gdx.input.isKeyPressed(Input.Keys.NUM_2) && Gdx.input.isKeyJustPressed(Input.Keys.EQUALS)){
             setDebugMode();
         }
+
+        //Flashlight
+        if (Gdx.input.justTouched() && player.checkInventory(0) == 1) { // Check if the screen was just touched
+            clickFlashlight();
+            flashlight_click.play();
+        }
+        if(Gdx.input.isKeyPressed(Input.Keys.F)){   // F to equip flashlight
+            player.setItem(0, 1);
+        }
+        if(Gdx.input.isKeyPressed(Input.Keys.SPACE)){player.getBody().applyLinearImpulse(-1000,1000, player.getX(),player.getY(),true);}
     }
 
     @Override
@@ -178,9 +205,39 @@ public class GameState extends State{
         cameraTarget.x += (player.getPosition().x - cameraTarget.x) * lerp * dt;
         cameraTarget.y += (player.getPosition().y - cameraTarget.y) * lerp * dt;
 
-
-
+        //Hitbox collisions
         player.update(dt);
+
+        float lastVelx = 0f;
+
+        for (Rectangle bound : new Array.ArrayIterator<>(bounds)) {
+
+            if (player.collides(bound)) {
+
+                if (player.getVelX() > 0) {           // hit right wall
+                    player.movementLocked = true;
+                    player.getBody().applyLinearImpulse(-10000f, 0f,
+                        player.getPosition().x, player.getPosition().y, true);
+                }
+                else if (player.getVelX() < 0) {      // hit left wall
+                    player.movementLocked = true;
+                    player.getBody().applyLinearImpulse(10000f, 0f,
+                        player.getPosition().x, player.getPosition().y, true);
+                }
+                else if (player.getVelY() > 0) {      // hit top wall
+                    player.movementLocked = true;
+                    player.getBody().applyLinearImpulse(0f, -10000f,
+                        player.getPosition().x, player.getPosition().y, true);
+                }
+                else if (player.getVelY() < 0) {      // hit bottom wall
+                    player.movementLocked = true;
+                    player.getBody().applyLinearImpulse(0f, 10000f,
+                        player.getPosition().x, player.getPosition().y, true);
+                }
+            }
+
+        }
+
         ball.update();
         chest.update();
         flashlightUpdate();
@@ -239,6 +296,8 @@ public class GameState extends State{
         // Draw world
         MapDrawer mapDrawer = new MapDrawer(MapData.MainMap);
         mapDrawer.render(sb);
+        MapDrawer second = new MapDrawer(MapData.MainMapLayer2);
+        second.render(sb);
         if(!debugMode) {
             player.render(sb);
             ball.render(sb);
@@ -346,7 +405,9 @@ public class GameState extends State{
 
                 shapeRenderer.rect(x, y, w, h);
             }
-
+            Gdx.gl.glLineWidth(6);
+            shapeRenderer.setColor(Color.GREEN);
+            shapeRenderer.rect(player.getHitbox().x, player.getHitbox().y, player.getHitbox().width, player.getHitbox().height);
             shapeRenderer.end();
 
         } else {
@@ -362,5 +423,10 @@ public class GameState extends State{
     public void dispose() {
         world.dispose();
         shaderProgram.dispose();
+    }
+
+    @Override
+    public void resize(int width, int height) {
+
     }
 }

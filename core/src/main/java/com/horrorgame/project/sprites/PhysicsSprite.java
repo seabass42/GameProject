@@ -1,23 +1,16 @@
 package com.horrorgame.project.sprites;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.files.FileHandle;
-import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.physics.box2d.*;
 import com.badlogic.gdx.math.Vector2;
 import box2dLight.Light;
-import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.horrorgame.project.states.GameState;
-
-import static com.horrorgame.project.states.GameState.camera;
-import static com.horrorgame.project.states.State.debugMode;
 
 public abstract class PhysicsSprite extends Sprite {
 
@@ -55,6 +48,13 @@ public abstract class PhysicsSprite extends Sprite {
     public float getBodyHeight(){ return height;}
     public Label getLabel() { return label; }
     public String getName() { return name; }
+
+    /** setter */
+    public void setSpritePosition(float x, float y) {
+        this.x = x;
+        this.y = y;
+        body.setTransform(x, y, 0);
+    }
 
     /** Sets a box-shaped fixture */
     protected void setBoxFixture(float width, float height) {

@@ -22,5 +22,6 @@ public abstract class State {
     public abstract void update(float dt);
     public abstract void render(SpriteBatch sb);
     public abstract void dispose();
+    public abstract void resize(int width, int height);
 
 }

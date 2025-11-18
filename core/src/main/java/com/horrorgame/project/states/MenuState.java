@@ -125,6 +125,11 @@ public class MenuState extends State {
 
     }
 
+    @Override
+    public void resize(int width, int height) {
+
+    }
+
     public static void onChange(Actor actor, Runnable runnable){ // Method for button behavior
         actor.addListener(new ChangeListener() {
             @Override
