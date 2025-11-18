@@ -31,6 +31,7 @@ public class Player extends PhysicsSprite {
 
     private ArrayList<Sound> footsteps = new ArrayList<>();
     private Sound tired;
+    private Sound out_of_breath;
     private float lastStepX, lastStepY;
     private float STEP_DISTANCE = 15f;
     private final Random random = new Random();
@@ -66,13 +67,14 @@ public class Player extends PhysicsSprite {
         footsteps = loadSounds("assets/sounds/player/LightDirt", 4);
         // Load tired sound
         tired = Gdx.audio.newSound(Gdx.files.internal("assets/sounds/player/heartbeat.wav"));
+        out_of_breath = Gdx.audio.newSound(Gdx.files.internal("assets/sounds/player/out-of-breath2.ogg"));
     }
 
     public void update(float dt) {
         boolean shiftPressed = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT);
         canRun = shiftPressed && !isTired;
         // Update stamina
-        if (shiftPressed && stamina > 0f && velocity.len() > 0) {
+        if (shiftPressed && stamina > 0f && isWalking && !isTired) {
             // Running depletes stamina
             stamina -= dt / RUN_DEPLETION_TIME;
 
@@ -80,6 +82,7 @@ public class Player extends PhysicsSprite {
                 stamina = 0f;
                 if (!isTired) {
                     tired.play(0.04f);
+                    out_of_breath.play(0.1f);
                     isTired = true;
                 }
             }

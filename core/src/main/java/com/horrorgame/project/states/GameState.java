@@ -261,7 +261,7 @@ public class GameState extends State{
             );
 
             shaderProgram.bind();
-            shaderProgram.setUniformf("u_tiredIntensity", tiredShaderIntensity/2);
+            shaderProgram.setUniformf("u_tiredIntensity", tiredShaderIntensity/1.7f);
             shaderProgram.setUniformf("center", center);
             shaderProgram.setUniformf("u_time", time);
             shaderProgram.setUniformf("u_resolution",
