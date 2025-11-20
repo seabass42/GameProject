@@ -8,12 +8,15 @@ public abstract class State {
     protected OrthographicCamera cam;
     protected Vector3 mouse;
     protected GameStateManager gsm;
+    public static boolean debugMode = false;
 
     protected State(GameStateManager gsm){
         mouse = new Vector3();
         this.gsm = gsm;
         cam = new OrthographicCamera();
     }
+
+    protected abstract void setDebugMode();
 
     protected abstract void handleInput();
     public abstract void update(float dt);

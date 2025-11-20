@@ -58,6 +58,12 @@ public class HouseState extends State{
 
 
     }
+
+    @Override
+    protected void setDebugMode() {
+
+    }
+
     @Override
     protected void handleInput() {
 

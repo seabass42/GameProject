@@ -2,66 +2,99 @@ package com.horrorgame.project.sprites;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.*;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.*;
+import com.badlogic.gdx.utils.Array;
 
 import java.util.ArrayList;
 import java.util.Random;
 
-public class Player implements InputProcessor {
+import static com.horrorgame.project.states.State.debugMode;
 
-    public Vector2 position = new Vector2();
-    private Vector2 centerOfPlayer =  new Vector2();  //bc the sprites using position create an offset
-    private Vector2 walkSpeed = new Vector2();
-    private float speed = 120;
+public class Player extends PhysicsSprite {
+
+    private Vector2 velocity = new Vector2();
+    private float speed = 20;
     private boolean facingLeft = false;
-
-    //Inventory Maybe
-    public boolean hasLight = true; //temp true until we make it so that flashlight is obtained
+    public boolean hasLight = true;
 
     private TextureAtlas atlas;
     private Animation<TextureRegion> walkAnimation;
     private Animation<TextureRegion> idleAnimation;
+    private TextureRegion currentFrame;
 
-    private float stateTime = 0; //animation time / frame number
+    private float stateTime = 0f;
 
-    private ArrayList<Sound> footsteps = new ArrayList<Sound>();
+    private ArrayList<Sound> footsteps = new ArrayList<>();
+    private Sound tired;
+    private Sound out_of_breath;
     private float lastStepX, lastStepY;
-    private final float STEP_DISTANCE = 50f;
+    private float STEP_DISTANCE = 15f;
     private final Random random = new Random();
 
     private boolean isWalking = false;
-    private boolean allowDiagonals = false; // toggle diagonal movement
+    private boolean allowDiagonals = false;
 
-    private Rectangle hitbox;
-    private static final int PLAYER_WIDTH = 20;
-    private static final int PLAYER_HEIGHT = 32;
+    private float stamina = 1f;             // Stamina level (0 to 1)
+    private final float RUN_DEPLETION_TIME = 5f;    // seconds to fully deplete
+    private final float RECOVERY_TIME = 5f; // seconds to recover
+    public boolean isTired = false;
+    private boolean canRun = true;
+
+    private Rectangle hitboxUp;
+    private Rectangle hitboxLeft;
+    private Rectangle hitboxRight;
+    private Rectangle hitboxDown;
 
     private int[] inventory;
 
-    public Player(float x, float y) {
-        position.set(x, y);
-        centerOfPlayer.set(x+40, y+50);
+
+    public Player(String name, Texture texture, float x, float y, float width, float height) {
+        super(name, texture, x, y, width, height, false);
+
+        setSize(width, height);
+        setOriginCenter(); // makes rotation around the sprite center
+
+        // Create matching Box2D body
+        setBoxFixture(width, height);
+        body.setType(BodyDef.BodyType.DynamicBody); // ignore collisions but still movable
+
+        // Load animations
         atlas = new TextureAtlas(Gdx.files.internal("assets/sprites/idleSprites.atlas"));
         idleAnimation = new Animation<>(0.1f, atlas.findRegions("idle"));
         idleAnimation.setPlayMode(Animation.PlayMode.LOOP);
+
         atlas = new TextureAtlas(Gdx.files.internal("assets/sprites/walkingSprites.atlas"));
         walkAnimation = new Animation<>(0.05f, atlas.findRegions("walking"));
-        footsteps = loadSounds("assets/sounds/player/LightDirt", 4);
 
-        hitbox = new Rectangle(x,y,PLAYER_WIDTH,PLAYER_HEIGHT);
+        // Load footstep sounds
+        footsteps = loadSounds("assets/sounds/player/LightDirt", 4);
+        // Load tired sound
+        tired = Gdx.audio.newSound(Gdx.files.internal("assets/sounds/player/heartbeat.wav"));
+        out_of_breath = Gdx.audio.newSound(Gdx.files.internal("assets/sounds/player/out-of-breath2.ogg"));
+
+        hitboxLeft = new Rectangle(x-width/2,y+5,width/2,height-10);
+        hitboxRight = new Rectangle(x+width/2,y+5,width/2,height-10);
+        hitboxUp = new Rectangle(x+5,y+height/2,width-10,height/2);
+        hitboxDown = new Rectangle(x+5,y-height/2,width-10,height/2);
+
         inventory = new int[4];
         inventory[0] = 0;
 
         // Inventory key: 0 = flashlight, 1 = item1, 2 = item2, 3 = item3
     }
     //  Check if player is colliding with something
-    public boolean collides(Rectangle rect){
-        return hitbox.overlaps(rect);
+    public boolean collidesLeft(Rectangle rect){
+        return hitboxLeft.overlaps(rect);
     }
+    public boolean collidesRight(Rectangle rect) { return hitboxRight.overlaps(rect); }
+    public boolean collidesUp(Rectangle rect){ return hitboxUp.overlaps(rect); }
+    public boolean collidesDown(Rectangle rect){ return hitboxDown.overlaps(rect); }
     public int checkInventory(int index){
         return inventory[index];
     }
@@ -69,81 +102,25 @@ public class Player implements InputProcessor {
         inventory[index] = item;
     }
 
-
-    public void update(float dt) {
-        // Adjust speed based on Shift key
-        speed = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) ? 200 : 120;
-        if(Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)) {walkAnimation.setFrameDuration(0.045f);
-        }else {walkAnimation.setFrameDuration(0.06f);}
-
-        // Reset movement
-        walkSpeed.set(0, 0);
-
-        // Determine movement direction
-        if(allowDiagonals) {
-            if(Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP)) walkSpeed.y = speed;
-            if(Gdx.input.isKeyPressed(Input.Keys.S)  || Gdx.input.isKeyPressed(Input.Keys.DOWN)) walkSpeed.y = -speed;
-            if(Gdx.input.isKeyPressed(Input.Keys.A)  || Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-                walkSpeed.x = -speed;
-                facingLeft = true;
-            }
-            if(Gdx.input.isKeyPressed(Input.Keys.D)  || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-                walkSpeed.x = speed;
-                facingLeft = false;
-            }
-        } else {
-            // Prevent diagonal: only move in one axis at a time (vertical first)
-            if(Gdx.input.isKeyPressed(Input.Keys.W)  || Gdx.input.isKeyPressed(Input.Keys.UP)) {
-                walkSpeed.y = speed;
-            }else if(Gdx.input.isKeyPressed(Input.Keys.S)  || Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
-                walkSpeed.y = -speed;
-            }else if(Gdx.input.isKeyPressed(Input.Keys.A)  || Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-                walkSpeed.x = -speed;
-                facingLeft = true;
-            } else if(Gdx.input.isKeyPressed(Input.Keys.D)  || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-                walkSpeed.x = speed;
-                facingLeft = false;
-            }
-        }
-
-        // Determine if walking
-        isWalking = walkSpeed.len() > 0;
-
-        if (isWalking) {
-            stateTime += dt; // Advance animation time only if walking
-
-            //mark the new last step
-            float dx = position.x - lastStepX;
-            float dy = position.y - lastStepY;
-            float distance = (float) Math.sqrt(dx * dx + dy * dy);
-            //for every STEP_DISTANCE traveled, a random sound in ArrayList<Sound>footsteps will play
-            if (distance >= STEP_DISTANCE) {
-                //eventually, the sounds in footsteps will be changed to the running sounds
-                footsteps.get(random.nextInt(footsteps.size())).play();
-                lastStepX = position.x;  //mark last footstep
-                lastStepY = position.y;
-            }
-        }
-
-        // Move player
-        position.x += walkSpeed.x * dt;
-        position.y += walkSpeed.y * dt;
-        centerOfPlayer.x = position.x + 20;
-        centerOfPlayer.y = position.y + 20;
-        hitbox.setPosition(position);
-
-    }
     public void setVelocity(float x, float y){
-        walkSpeed.x = x;
-        walkSpeed.y = y;
+        velocity.x = x;
+        velocity.y = y;
     }
 
-    public Rectangle getHitbox(){
-        return hitbox;
+    public Rectangle getHitboxLeft(){
+        return hitboxLeft;
+    }
+    public Rectangle getHitboxRight(){
+        return hitboxRight;
+    }
+    public Rectangle getHitboxUp(){
+        return hitboxUp;
+    }
+    public Rectangle getHitboxDown(){
+        return hitboxDown;
     }
 
 
-    //new reusable method for loading sound files!!! for running versus walking, grass vs concrete etc
     private ArrayList<Sound> loadSounds(String basePath, int count) {
         ArrayList<Sound> list = new ArrayList<>();
         for (int i = 1; i <= count; i++) {
@@ -152,63 +129,111 @@ public class Player implements InputProcessor {
         return list;
     }
 
-    public float getPositionX() { return centerOfPlayer.x; }
-    public float getPositionY() { return centerOfPlayer.y; }
-    public Vector2 getVectorPos() {return centerOfPlayer;}
-    public float getAngleBetweenObj(Vector2 v1, Vector2 v2){
-        Vector2 diff = v2.sub(v1);
-        return diff.angle();
+    public float getVelX(){
+        return velocity.x;
     }
-    public boolean getDirection(){ return facingLeft; }
-    public void setDirection(boolean facingLeft){ this.facingLeft = facingLeft; }
+    public float getVelY(){
+        return velocity.y;
+    }
 
+    public void setDirection(boolean facingLeft) { this.facingLeft = facingLeft; }
 
-    public void render(SpriteBatch batch) {
-        TextureRegion currentFrame;
+    public float getAngleBetweenObj(Vector2 v1, Vector2 v2) {
+        return v2.cpy().sub(v1).angle();
+    }
 
-        // Only use walking animation if player is moving
-        if (isWalking) {
-            currentFrame = walkAnimation.getKeyFrame(stateTime, true);
-        } else {
-            // Use idle animation (or just the first frame if you only have one)
-            currentFrame = idleAnimation.getKeyFrame(stateTime, true);
+    public void update(float dt) {
+
+        boolean shiftPressed = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT);
+        canRun = shiftPressed && !isTired;
+        // Update stamina
+        if (shiftPressed && stamina > 0f && isWalking && !isTired) {
+            // Running depletes stamina
+            stamina -= dt / RUN_DEPLETION_TIME;
+
+            if (stamina <= 0f) {
+                stamina = 0f;
+                if (!isTired && !debugMode) {
+                    tired.play(0.04f);
+                    out_of_breath.play(0.1f);
+                    isTired = true;
+                }
+            }
+        } else if (stamina < 1f) {
+            // Recover stamina when not running
+            stamina += dt / RECOVERY_TIME;
+            if (stamina >= 1f) {
+                stamina = 1f;
+                isTired = false;
+            }
         }
 
-        //checks the direction of the player in order to flip the images
+        // Can run only if stamina > 0
+        // Adjust speed
+        speed = canRun ? 40 : 20;
+        STEP_DISTANCE = canRun ? 20 : 15;
+        footsteps = canRun ? loadSounds("assets/sounds/player/LightDirtRun", 4)
+            : loadSounds("assets/sounds/player/LightDirt", 4);
+        walkAnimation.setFrameDuration(canRun ? 0.045f : 0.06f);
+        //END OF STAMINA
+        // Reset movement
+        velocity.set(0, 0);
+
+        // Determine movement direction
+        if (allowDiagonals) {
+            if (Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP)) velocity.y = speed;
+            if (Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.DOWN)) velocity.y = -speed;
+            if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT)) { velocity.x = -speed; facingLeft = true; }
+            if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) { velocity.x = speed; facingLeft = false; }
+        } else {
+            // No diagonals
+            if (Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP)) {velocity.y = speed;}
+            else if (Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.DOWN)) {velocity.y = -speed;}
+            else if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT)) { velocity.x = -speed; facingLeft = true;}
+            else if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) { velocity.x = speed; facingLeft = false;}
+        }
+
+        //Walking
+        isWalking = velocity.len() > 0;
+
+        //Footstep sounds
+        if (isWalking) {
+            stateTime += dt;
+            float dx = body.getPosition().x - lastStepX;
+            float dy = body.getPosition().y - lastStepY;
+            float distance = (float) Math.sqrt(dx * dx + dy * dy);
+            if (distance >= STEP_DISTANCE) {
+                footsteps.get(random.nextInt(footsteps.size())).play();
+                lastStepX = body.getPosition().x;
+                lastStepY = body.getPosition().y;
+            }
+        }
+
+        //Move body and hitbox
+        hitboxLeft.setPosition(body.getPosition().x-width/2,body.getPosition().y-height/4);
+        hitboxRight.setPosition(body.getPosition().x,body.getPosition().y-height/4);
+        hitboxUp.setPosition(body.getPosition().x-width/4,body.getPosition().y);
+        hitboxDown.setPosition(body.getPosition().x-width/4, body.getPosition().y-height/2);
+        // Apply collision pushback AFTER movement:
+        body.setLinearVelocity(velocity.x, velocity.y);
+        super.update();
+    }
+
+    public void render(SpriteBatch batch) {
+        // Choose animation frame
+        currentFrame = isWalking ? walkAnimation.getKeyFrame(stateTime, true)
+            : idleAnimation.getKeyFrame(stateTime, true);
+
+        // Flip sprite if needed
         if (currentFrame.isFlipX() != facingLeft) {
             currentFrame.flip(true, false);
         }
-        batch.draw(currentFrame, position.x, position.y,20,32);
 
+        // Draw sprite at scaled size
+        batch.draw(currentFrame,
+            body.getPosition().x - getWidth() / 2f,
+            body.getPosition().y - getHeight() / 2f,
+            getWidth(),
+            getHeight());
     }
-
-
-    // --- Input handling ---
-    private void playerRun(){
-        if(Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)) {
-            speed = 200;
-        }else speed=120;
-    }
-
-    public float getVelX(){
-        return walkSpeed.x;
-    }
-    public float getVelY(){
-        return walkSpeed.y;
-    }
-    public void setPosition(float x, float y){
-        position.x = x;
-        position.y = y;
-    }
-
-    // --- Unused Input methods ---
-    @Override public boolean keyDown(int keycode) {return false;}
-    @Override public boolean keyUp(int keycode) {return false;}
-    @Override public boolean keyTyped(char character) { return false; }
-    @Override public boolean touchDown(int screenX, int screenY, int pointer, int button) { return false; }
-    @Override public boolean touchUp(int screenX, int screenY, int pointer, int button) { return false; }
-    @Override public boolean touchCancelled(int screenX, int screenY, int pointer, int button) { return false; }
-    @Override public boolean touchDragged(int screenX, int screenY, int pointer) { return false; }
-    @Override public boolean mouseMoved(int screenX, int screenY) { return false; }
-    @Override public boolean scrolled(float amountX, float amountY) { return false; }
 }
