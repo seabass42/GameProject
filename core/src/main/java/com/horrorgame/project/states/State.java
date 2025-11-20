@@ -8,6 +8,7 @@ public abstract class State {
     protected OrthographicCamera cam;
     protected Vector3 mouse;
     protected GameStateManager gsm;
+    public static boolean debugMode = false;
 
     protected State(GameStateManager gsm){
         mouse = new Vector3();
@@ -15,9 +16,12 @@ public abstract class State {
         cam = new OrthographicCamera();
     }
 
+    protected abstract void setDebugMode();
+
     protected abstract void handleInput();
     public abstract void update(float dt);
     public abstract void render(SpriteBatch sb);
     public abstract void dispose();
+    public abstract void resize(int width, int height);
 
 }

@@ -3,11 +3,9 @@ package com.horrorgame.project.states;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Sound;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
@@ -37,6 +35,7 @@ public class LoadingState extends State {
         label.setPosition(Gdx.graphics.getWidth()/2f, Gdx.graphics.getHeight()/2f, Align.center);
         stage.addActor(label);
 
+
         Gdx.input.setInputProcessor(null);
     }
 
@@ -45,8 +44,15 @@ public class LoadingState extends State {
             // GameState assets
             if(!manager.isLoaded("onlytheocean-silent-hill-sm.jpeg"))
                 manager.load("onlytheocean-silent-hill-sm.jpeg", Texture.class);
-            // Add other assets (sounds, maps, etc.) here
+            //Add other assets (sounds, maps, etc.) here
+            manager.load("vhsui/vhs-ui.json", Skin.class);
             manager.load("sounds/objectInteractions/flashlight_click.wav", Sound.class);
+            manager.load("sounds/objectInteractions/light-hum.mp3", Sound.class);
+    }
+
+    @Override
+    protected void setDebugMode() {
+
     }
 
     @Override
@@ -63,7 +69,7 @@ public class LoadingState extends State {
         }
         timer += dt;
 
-        if(manager.update() && timer >= 1f) {
+        if(manager.update() && timer >= 2f) {
             manager.finishLoading();
             gsm.set(new GameState(gsm, manager));
         }
@@ -83,5 +89,10 @@ public class LoadingState extends State {
     @Override
     public void dispose() {
         stage.dispose();
+    }
+
+    @Override
+    public void resize(int width, int height) {
+
     }
 }

@@ -7,199 +7,426 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.graphics.*;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.FrameBuffer;
+import com.badlogic.gdx.graphics.glutils.ShaderProgram;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.physics.box2d.*;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Array;
 import com.horrorgame.project.HorrorMain;
+import com.horrorgame.project.sprites.Ball;
+import com.horrorgame.project.sprites.Chest;
+import com.horrorgame.project.sprites.PhysicsSprite;
+import com.horrorgame.project.sprites.Player;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+
+import java.awt.*;
+import java.util.ArrayList;
 import com.horrorgame.project.Tiles.MapData;
 import com.horrorgame.project.Tiles.MapDrawer;
-import com.horrorgame.project.sprites.Player;
 
 public class GameState extends State{
-    private AssetManager manager;
+    private AssetManager manager = new AssetManager();
+    private FrameBuffer fbo;
+    private ShaderProgram shaderProgram;
+    private float time;
+    private ShapeRenderer shapeRenderer = new ShapeRenderer();
+
+    //camera "dragging behind" (lerping) player and screen effects (CRT Monitor curvature when stamina's empty)
+    //could later be placed in settings (to be placed somewhere else later as global variables)
+    private boolean cameraDrag = false;
+    private boolean doScreenEffects = true;
+    private float tiredShaderIntensity = 0f;
+
+
+    //Body category bits
+    private Skin skin;
 
     //Cursor Position as Vector2
     private Vector2 cursorPosition = new Vector2();
     private Vector3 cursorToWorldVec = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
     private Vector2 cursorToPlayer = new Vector2();
-    private static Player player;
 
-    //  Collision
-    private Array<Rectangle> bounds;
+
+    private ArrayList<PhysicsSprite> physicsSprites = new ArrayList<>();
+    private static Ball ball;
+    private static Chest chest;
+
+    private static Player player;
+    private final Vector2 cameraTarget = new Vector2();
+
 
 
     private SpriteBatch batch;
-    private static OrthographicCamera camera = new OrthographicCamera();
+    public static OrthographicCamera camera = new OrthographicCamera();
+
 
     // --LIGHTING--
-    private World world = new World(new Vector2(0,0), false);
+    public static World world = new World(new Vector2(0,0), false);
     private RayHandler rayHandler = new RayHandler(world);
     private PointLight ambientLight;
 
-    //Flashlight
+    //Flashlight Initiations
     private ConeLight flashlight;
     private Boolean flashOn = false;
     private Sound flashlight_click;
+    private Sound light_hum;
 
+    //Test background and objects
+    private Texture tileset;
+    private TextureRegion[][] tiles;
+    private int tileSize;
+
+    //  Collision
+    private Array<Rectangle> bounds = new Array<>();
 
 
     public GameState(GameStateManager gsm, AssetManager manager){
         super(gsm);
         this.manager = manager;
-        bounds = new Array<>();
+        fbo = new FrameBuffer(Pixmap.Format.RGBA8888, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
 
-        player = new Player(HorrorMain.WIDTH/2,HorrorMain.HEIGHT/2);
-        Gdx.input.setInputProcessor(player);
+        String vertexShader = Gdx.files.internal("shaders/vertex.glsl").readString();
+        String fragmentShader = Gdx.files.internal("shaders/crt.glsl").readString();
+        shaderProgram = new ShaderProgram(vertexShader,fragmentShader);
+        shaderProgram.pedantic = false;
 
-        camera = new OrthographicCamera();
-        camera.viewportWidth = HorrorMain.WIDTH/3.5f;
-        camera.viewportHeight = HorrorMain.HEIGHT/3.5f;
+        skin = manager.get("vhsui/vhs-ui.json", Skin.class);
+        flashlight_click = manager.get("sounds/objectInteractions/flashlight_click.wav", Sound.class);
+        light_hum = manager.get("sounds/objectInteractions/light-hum.mp3", Sound.class);
 
-        //Lighting
+
+        player = new Player("player", new Texture("assets/sprites/idleSprites.png"),
+            HorrorMain.WIDTH/2,HorrorMain.HEIGHT/2,20,26.25f);
+        physicsSprites.add(player);
+
+        ball = new Ball("ball", new Texture("assets/sprites/ball.png"),
+            HorrorMain.WIDTH/2, (HorrorMain.HEIGHT/2-100),10, false);
+        physicsSprites.add(ball);
+
+        chest = new Chest("chest", new Texture("assets/sprites/chest.png"),
+            HorrorMain.WIDTH/3, HorrorMain.HEIGHT/3, 20, 20, false);
+        physicsSprites.add(chest);
+
+        camera.viewportWidth = HorrorMain.WIDTH/4;
+        camera.viewportHeight = HorrorMain.HEIGHT/4;
+
+
+        /** -----------------LIGHTING-----------------------------------*/
         rayHandler.setCombinedMatrix(camera.combined);
         rayHandler.useDiffuseLight(true); //Stops "draining the life from the colors"/desaturation of textures
-        Color lightColor = new Color(0.45f, 0.35f, 0.65f, 0f); //ambient light color
-        rayHandler.setAmbientLight(Color.BLACK);
+        //ambient light color
+        //rayHandler.setAmbientLight(new Color(0.1125f, 0.075f, 0.160f, 10f));
 
         //Actual Flashlight (testing)
-        flashlight_click = manager.get("sounds/objectInteractions/flashlight_click.wav", Sound.class);
-        flashlight = new ConeLight(rayHandler, 250, Color.WHITE, 350, player.getPositionX(), player.getPositionY(), 0, 25);
+        flashlight = new ConeLight(rayHandler, 1000, Color.WHITE, 200, player.getPosition().x, player.getPosition().y, 0, 15);
+        flashlight.setSoftnessLength(80f);
         flashlight.setActive(false);
-
         //Player ambient light
-        ambientLight = new PointLight(rayHandler, 10, Color.GRAY, 100, player.getPositionX(),player.getPositionY());
+        ambientLight = new PointLight(rayHandler, 500, Color.GRAY, 130, player.getPosition().x, player.getPosition().y);
+        ambientLight.setXray(true);
 
+        tileset = new Texture("TileAssets/Tileset.png");
+        tileSize = 16;
+        tiles = TextureRegion.split(tileset, tileSize, tileSize);
 
-        bounds.add(new Rectangle(0,0, HorrorMain.WIDTH, 112)); // bottom
-        bounds.add(new Rectangle(0,0, 96, HorrorMain.HEIGHT)); // left
-        bounds.add(new Rectangle(80, (HorrorMain.HEIGHT - 64), 448, 64)); // top left
-        bounds.add(new Rectangle(656, (HorrorMain.HEIGHT - 64) , 368, 64)); // top right
-        bounds.add(new Rectangle(848, 80, 128, 80)); // lower right corner
-        bounds.add(new Rectangle(992, 160, 192, 224));  // under bridge
-        bounds.add(new Rectangle(992, 464, 192, 208)); // above bridge
-
-        bounds.add(new Rectangle(544, HorrorMain.HEIGHT - 64, 80, 32)); // EXIT (Must be last)
-
-
+        createBounds(bounds);
 
     }
+
+    private void createBounds(Array<Rectangle> bounds) {
+        //Map hitboxes
+        bounds.add(new com.badlogic.gdx.math.Rectangle(0,0, HorrorMain.WIDTH, 112)); // bottom
+        bounds.add(new com.badlogic.gdx.math.Rectangle(0,0, 96, HorrorMain.HEIGHT)); // left
+        bounds.add(new com.badlogic.gdx.math.Rectangle(80, (HorrorMain.HEIGHT - 64), 448, 64)); // top left
+        bounds.add(new com.badlogic.gdx.math.Rectangle(656, (HorrorMain.HEIGHT - 64) , 368, 64)); // top right
+        bounds.add(new com.badlogic.gdx.math.Rectangle(848, 80, 128, 80)); // lower right corner
+        bounds.add(new com.badlogic.gdx.math.Rectangle(992, 160, 192, 224));  // under bridge
+        bounds.add(new com.badlogic.gdx.math.Rectangle(992, 464, 192, 208)); // above bridge
+
+        bounds.add(new Rectangle(544, HorrorMain.HEIGHT - 64, 80, 32)); // EXIT (Must be last)
+    }
+
+
+    @Override
+    protected void setDebugMode() {
+        debugMode = !debugMode;
+    }
+
     @Override
     protected void handleInput() {
+        //Debug
+        if(Gdx.input.isKeyPressed(Input.Keys.NUM_2) && Gdx.input.isKeyJustPressed(Input.Keys.EQUALS)){
+            setDebugMode();
+        }
+
+        //Flashlight
         if (Gdx.input.justTouched() && player.checkInventory(0) == 1) { // Check if the screen was just touched
             clickFlashlight();
             flashlight_click.play();
-
         }
         if(Gdx.input.isKeyPressed(Input.Keys.F)){   // F to equip flashlight
             player.setItem(0, 1);
         }
+        if(Gdx.input.isKeyPressed(Input.Keys.SPACE)){player.getBody().applyLinearImpulse(-1000,1000, player.getX(),player.getY(),true);}
     }
 
     @Override
     public void update(float dt) { //Logic
-        camera.update();
-        camera.position.set(player.getPositionX(),player.getPositionY(), 0);
-
         handleInput();
+
+        // Smoothly approach target intensity
+        float target = player.isTired ? 1f : 0f;
+        float speed = 2f; // how fast the shader ramps up/down
+        tiredShaderIntensity += (target - tiredShaderIntensity) * dt * speed;
+
+
         //For getting cursor X and Y NOT according to camera
         // (otherwise it gets left behind when the player walks)
         cursorToWorldVec.set(Gdx.input.getX(), Gdx.input.getY(), 0);
         camera.unproject(cursorToWorldVec);
         cursorPosition.set(cursorToWorldVec.x, cursorToWorldVec.y);
         cursorToPlayer.set(Gdx.input.getX(), Gdx.input.getY());
+
         //Light Updates
-        ambientLight.setPosition(player.getPositionX()-10, player.getPositionY());
+        ambientLight.setPosition(player.getPosition().x, player.getPosition().y);
+        //ambientLight.setPosition(cursorPosition.x, cursorPosition.y);
 
+        // Follow player but NOT instantly — this creates softness that allows shake to work
+        float lerp = 6f;  // increase for tighter following
+        cameraTarget.x += (player.getPosition().x - cameraTarget.x) * lerp * dt;
+        cameraTarget.y += (player.getPosition().y - cameraTarget.y) * lerp * dt;
 
-        for (Rectangle bound : new Array.ArrayIterator<>(bounds)){     // Check X collision
-            if (player.collides(bound)){
-                if (player.getVelX() < 0){
-                    player.position.x = bound.x + bound.width;
-                    player.setVelocity(0, player.getVelY());
-                } else if (player.getVelX() > 0) {
-                    player.setPosition(bound.x - 20, player.position.y);
-                    player.setVelocity(0, player.getVelY());
-                }
-                else if (player.getVelY() > 0){    // Check Y collision
-                    player.setPosition(player.position.x, bound.y - 32);
-                    player.setVelocity(player.getVelX(), 0);
-                }
-                else if (player.getVelY() < 0){
-                    player.setPosition(player.position.x, bound.y + bound.height);
-                    player.setVelocity(player.getVelX(), 0);
-                }
+        //Hitbox collisions
+        player.update(dt);
 
+        float lastVelx = 0f;
+
+        for (Rectangle bound : new Array.ArrayIterator<>(bounds)) {
+
+            if (player.collides(bound)) {
+
+                if (player.getVelX() > 0) {           // hit right wall
+                    player.movementLocked = true;
+                    player.getBody().applyLinearImpulse(-10000f, 0f,
+                        player.getPosition().x, player.getPosition().y, true);
+                }
+                else if (player.getVelX() < 0) {      // hit left wall
+                    player.movementLocked = true;
+                    player.getBody().applyLinearImpulse(10000f, 0f,
+                        player.getPosition().x, player.getPosition().y, true);
+                }
+                else if (player.getVelY() > 0) {      // hit top wall
+                    player.movementLocked = true;
+                    player.getBody().applyLinearImpulse(0f, -10000f,
+                        player.getPosition().x, player.getPosition().y, true);
+                }
+                else if (player.getVelY() < 0) {      // hit bottom wall
+                    player.movementLocked = true;
+                    player.getBody().applyLinearImpulse(0f, 10000f,
+                        player.getPosition().x, player.getPosition().y, true);
+                }
             }
-
 
         }
 
-        player.update(dt);
-
+        ball.update();
+        chest.update();
         flashlightUpdate();
 
+
+        //Final camera placement
+        if(cameraDrag) {camera.position.set(
+            cameraTarget.x,
+            cameraTarget.y,
+            0);
+        }else {camera.position.set(player.getPosition().x, player.getPosition().y, 0);}
+
+        camera.update();
     }
 
     //METHODS FOR FLASHLIGHT
     //acts as a boolean switch
-    public void clickFlashlight(){flashOn = !flashOn; flashlight.setActive(flashOn);}
-
+    public void clickFlashlight(){
+        flashOn = !flashOn;
+        flashlight.setActive(flashOn);
+        light_hum.loop(0.025f);
+    }
     //updates flashlight
     private void flashlightUpdate(){
         if(flashOn) {
-            if (cursorPosition.x > player.getPositionX()) {     // Player faces direction of cursor, with setDirection() determining if the player is facing left
-                player.setDirection(false);
-            } else {
-                player.setDirection(true);
-            }
-            flashlight.setPosition(player.getPositionX(), player.getPositionY());
-            flashlight.setDirection(player.getAngleBetweenObj(player.getVectorPos(), cursorPosition));
+            player.setDirection(cursorPosition.x <= player.getPosition().x);
 
-            //System.out.println(player.getPositionX() + "      " + cursorToPlayer.x);
-        }
-        camera.position.set(player.getPositionX(),player.getPositionY(), 0);
+                flashlight.setPosition(player.getPosition().x, player.getPosition().y);
+                flashlight.setDirection(player.getAngleBetweenObj(player.getPosition(), cursorPosition));
+
+            } else {
+                light_hum.stop();
+            }
     }
+
+
 
     @Override
     public void render(SpriteBatch sb) {
+
+        // -------------------------------------------------------
+        // 1. DRAW WORLD INTO FBO (the framebufferer)
+        // -------------------------------------------------------
+        fbo.begin();
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // Update camera to follow player (optional)
-        camera.position.set(player.getPositionX() - 10, player.getPositionY() + 0, 0);
-        camera.update();
+        time += Gdx.graphics.getDeltaTime();
 
-
-
-        // --- Draw player and other sprites ---
+        sb.setShader(null); // Always render world normally inside FBO
         sb.setProjectionMatrix(camera.combined);
+
         sb.begin();
 
+        world.step(1/60f, 6, 2);
+
+        // Draw world
         MapDrawer mapDrawer = new MapDrawer(MapData.MainMap);
         mapDrawer.render(sb);
         MapDrawer second = new MapDrawer(MapData.MainMapLayer2);
         second.render(sb);
+        if(!debugMode) {
+            player.render(sb);
+            ball.render(sb);
+            chest.render(sb);
+        }
+        sb.end();
+        fbo.end();
 
-        player.render(sb);
+
+        // -------------------------------------------------------
+        // 2. APPLY SCREEN SHADER OR NOT (based on tired status)
+        // -------------------------------------------------------
+
+        if (doScreenEffects) {
+
+            //Configure shader uniforms
+            Vector2 center = new Vector2(
+                (float)Gdx.graphics.getWidth() / 2f / Gdx.graphics.getWidth(),
+                (float)Gdx.graphics.getHeight() / 2f / Gdx.graphics.getHeight()
+            );
+
+            shaderProgram.bind();
+            shaderProgram.setUniformf("u_tiredIntensity", tiredShaderIntensity/1.7f);
+            shaderProgram.setUniformf("center", center);
+            shaderProgram.setUniformf("u_time", time);
+            shaderProgram.setUniformf("u_resolution",
+                Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+            sb.setShader(shaderProgram);
+
+        } else {
+            sb.setShader(null);
+        }
 
 
+        // -------------------------------------------------------
+        // 3. DRAW FBO TO SCREEN (fullscreen pass)
+        // -------------------------------------------------------
+        OrthographicCamera screenCam =
+            new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        screenCam.position.set(0, 0, 0);
+        screenCam.update();
+
+        sb.setProjectionMatrix(screenCam.combined);
+        sb.begin();
+
+        Texture tex = fbo.getColorBufferTexture();
+
+        sb.draw(
+            tex,
+            -Gdx.graphics.getWidth() / 2f,
+            -Gdx.graphics.getHeight() / 2f,
+            Gdx.graphics.getWidth(),
+            Gdx.graphics.getHeight(),
+            0, 0,
+            tex.getWidth(), tex.getHeight(),
+            false, true
+        );
 
         sb.end();
 
-        //Light
-        rayHandler.setCombinedMatrix(camera.combined);
-        rayHandler.updateAndRender();
 
+        // -------------------------------------------------------
+        // 4. DEBUG OR LIGHTING
+        // -------------------------------------------------------
+        if (debugMode) {
+            sb.setShader(null);
+            sb.setProjectionMatrix(camera.combined);
+            sb.begin();
+
+            for (PhysicsSprite s : physicsSprites) {
+                Label label = s.getLabel();
+                label.setPosition(
+                    s.getBody().getPosition().x - s.getBodyWidth() / 2f,
+                    s.getBody().getPosition().y
+                );
+                label.setFontScale(0.3f);
+                label.draw(sb, 1f);
+            }
+
+            Label debugInfo = new Label("Press 2 and 7 to exit debugMode", skin);
+            debugInfo.setFontScale(0.2f);
+            debugInfo.setPosition(camera.position.x - 157, camera.position.y + 70);
+            debugInfo.draw(sb, 1f);
+
+            player.render(sb);
+            ball.render(sb);
+            chest.render(sb);
+
+            sb.end();
+
+            // ---- DRAW PHYSICS OUTLINES ----
+            Gdx.gl.glLineWidth(2); // Optional thickness
+
+            shapeRenderer.setProjectionMatrix(camera.combined);
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+
+            shapeRenderer.setColor(Color.RED); // Outline color
+
+            for (PhysicsSprite s : physicsSprites) {
+                float x = s.getBody().getPosition().x - s.getBodyWidth() / 2f;
+                float y = s.getBody().getPosition().y - s.getBodyHeight() / 2f;
+                float w = s.getBodyWidth();
+                float h = s.getBodyHeight();
+
+                shapeRenderer.rect(x, y, w, h);
+            }
+            Gdx.gl.glLineWidth(6);
+            shapeRenderer.setColor(Color.GREEN);
+            shapeRenderer.rect(player.getHitbox().x, player.getHitbox().y, player.getHitbox().width, player.getHitbox().height);
+            shapeRenderer.end();
+
+        } else {
+            //Lights activated when outside debugMOde
+            rayHandler.setCombinedMatrix(camera);
+            rayHandler.updateAndRender();
+        }
     }
+
 
 
     @Override
     public void dispose() {
+        world.dispose();
+        shaderProgram.dispose();
+    }
+
+    @Override
+    public void resize(int width, int height) {
 
     }
 }

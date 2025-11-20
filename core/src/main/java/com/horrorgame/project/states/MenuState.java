@@ -1,6 +1,7 @@
 package com.horrorgame.project.states;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
@@ -64,25 +65,23 @@ public class MenuState extends State {
         table.add(creditsButton).padBottom(20);
         table.row();
         table.add(exitButton);
-        //table.setDebug(true);
+
     }
 
 
+    @Override
+    protected void setDebugMode() {
+        debugMode = !debugMode;
+    }
 
     @Override
     protected void handleInput() {
         onChange(playButton, () -> gsm.set(new LoadingState(gsm, manager)));// Buttons made functional
 
         onChange(exitButton, () -> Gdx.app.exit());
-    }
 
-    private void onPlayClicked() {
-
-        // Check if GameState assets are already loaded
-        if(manager.isLoaded("onlytheocean-silent-hill-sm.jpeg")) {
-            gsm.set(new GameState(gsm, manager));
-        } else {
-            gsm.set(new LoadingState(gsm, manager));
+        if(Gdx.input.isKeyPressed(Input.Keys.NUM_2) && Gdx.input.isKeyJustPressed(Input.Keys.EQUALS)){
+            setDebugMode();
         }
     }
 
@@ -94,6 +93,7 @@ public class MenuState extends State {
         }else if(!buttonHover()){playOnce = false;}
         handleInput();
         stage.getViewport().update(HorrorMain.WIDTH, HorrorMain.HEIGHT, true);
+
     }
 
     @Override
@@ -105,6 +105,11 @@ public class MenuState extends State {
         stage.act(Gdx.graphics.getDeltaTime());
         stage.draw();
 
+        if(debugMode) {
+            table.setDebug(true);
+        }else  {
+            table.setDebug(false);
+        }
     }
 
     private Boolean buttonHover(){
@@ -117,6 +122,11 @@ public class MenuState extends State {
 
     @Override
     public void dispose() {
+
+    }
+
+    @Override
+    public void resize(int width, int height) {
 
     }
 
