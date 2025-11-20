@@ -39,6 +39,7 @@ public abstract class PhysicsSprite extends Sprite {
 
         setSize(width, height);
         setPosition(x, y);
+        setOriginCenter();
 
     }
 
@@ -71,7 +72,8 @@ public abstract class PhysicsSprite extends Sprite {
 
         body.createFixture(fixtureDef);
         body.setLinearDamping(7f);
-        body.setFixedRotation(true);
+        body.setAngularDamping(7f);
+        body.setFixedRotation(false);
         shape.dispose();
     }
 
@@ -95,7 +97,7 @@ public abstract class PhysicsSprite extends Sprite {
 
         body.createFixture(fixtureDef);
         body.setLinearDamping(2f);
-        body.setFixedRotation(true);
+        body.setFixedRotation(false);
         shape.dispose();
     }
 

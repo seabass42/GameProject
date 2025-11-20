@@ -53,7 +53,7 @@ public class MapDrawer {
                     so the y coordinate of the tile must be flipped to avoid an inverted map
                     */
                 float y = (HorrorMain.HEIGHT - TILE_SIZE) - (rows * TILE_SIZE);
-                sb.draw(regionUsed[mapRow][mapCol], x, y);
+                sb.draw(regionUsed[mapRow][mapCol], x, y*0.99f);
 
             }
         }

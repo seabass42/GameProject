@@ -19,7 +19,7 @@ import static com.horrorgame.project.states.State.debugMode;
 public class Player extends PhysicsSprite {
 
     private Vector2 velocity = new Vector2();
-    private float speed = 20;
+    private float speed = 30;
     private boolean facingLeft = false;
     public boolean hasLight = true;
 
@@ -62,7 +62,7 @@ public class Player extends PhysicsSprite {
 
         // Create matching Box2D body
         setBoxFixture(width, height);
-        body.setType(BodyDef.BodyType.DynamicBody); // ignore collisions but still movable
+        body.setType(BodyDef.BodyType.KinematicBody); // ignore collisions but still movable
 
         // Load animations
         atlas = new TextureAtlas(Gdx.files.internal("assets/sprites/idleSprites.atlas"));
@@ -89,9 +89,7 @@ public class Player extends PhysicsSprite {
         // Inventory key: 0 = flashlight, 1 = item1, 2 = item2, 3 = item3
     }
     //  Check if player is colliding with something
-    public boolean collidesLeft(Rectangle rect){
-        return hitboxLeft.overlaps(rect);
-    }
+    public boolean collidesLeft(Rectangle rect){return hitboxLeft.overlaps(rect);}
     public boolean collidesRight(Rectangle rect) { return hitboxRight.overlaps(rect); }
     public boolean collidesUp(Rectangle rect){ return hitboxUp.overlaps(rect); }
     public boolean collidesDown(Rectangle rect){ return hitboxDown.overlaps(rect); }
@@ -154,7 +152,7 @@ public class Player extends PhysicsSprite {
             if (stamina <= 0f) {
                 stamina = 0f;
                 if (!isTired && !debugMode) {
-                    tired.play(0.04f);
+                    tired.play(0.07f);
                     out_of_breath.play(0.1f);
                     isTired = true;
                 }
@@ -170,7 +168,7 @@ public class Player extends PhysicsSprite {
 
         // Can run only if stamina > 0
         // Adjust speed
-        speed = canRun ? 40 : 20;
+        speed = canRun ? 50 : 30;
         STEP_DISTANCE = canRun ? 20 : 15;
         footsteps = canRun ? loadSounds("assets/sounds/player/LightDirtRun", 4)
             : loadSounds("assets/sounds/player/LightDirt", 4);
@@ -216,7 +214,7 @@ public class Player extends PhysicsSprite {
         hitboxDown.setPosition(body.getPosition().x-width/4, body.getPosition().y-height/2);
         // Apply collision pushback AFTER movement:
         body.setLinearVelocity(velocity.x, velocity.y);
-        super.update();
+        //super.update();
     }
 
     public void render(SpriteBatch batch) {

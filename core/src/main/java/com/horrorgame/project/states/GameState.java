@@ -19,6 +19,8 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.*;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.physics.box2d.joints.RevoluteJoint;
+import com.badlogic.gdx.physics.box2d.joints.RevoluteJointDef;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Array;
@@ -38,6 +40,7 @@ import com.horrorgame.project.Tiles.MapDrawer;
 public class GameState extends State{
     private AssetManager manager = new AssetManager();
     private FrameBuffer fbo;
+
     private ShaderProgram shaderProgram;
     private float time;
     private ShapeRenderer shapeRenderer = new ShapeRenderer();
@@ -96,6 +99,10 @@ public class GameState extends State{
     private final int HOUSE_HEIGHT = 105;
     private final int HOUSE_WIDTH = 116;
 
+    //Player capabilities
+    private boolean grabbing = false;
+    private RevoluteJoint grabJoint;
+
 
     public GameState(GameStateManager gsm, AssetManager manager){
         super(gsm);
@@ -103,6 +110,10 @@ public class GameState extends State{
         mapDrawer = new MapDrawer(MapData.MainMap);
         mapDrawer2 = new MapDrawer(MapData.MainMapLayer2);
         fbo = new FrameBuffer(Pixmap.Format.RGBA8888, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
+        Texture tex = fbo.getColorBufferTexture();
+        tex.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+        tex.setWrap(Texture.TextureWrap.ClampToEdge, Texture.TextureWrap.ClampToEdge);
+
 
         String vertexShader = Gdx.files.internal("shaders/vertex.glsl").readString();
         String fragmentShader = Gdx.files.internal("shaders/crt.glsl").readString();
@@ -123,7 +134,7 @@ public class GameState extends State{
         physicsSprites.add(ball);
 
         chest = new Chest("chest", new Texture("assets/sprites/chest.png"),
-            HorrorMain.WIDTH/3, HorrorMain.HEIGHT/3, 20, 20, false);
+            HorrorMain.WIDTH/3, HorrorMain.HEIGHT/3, 60, 20, false);
         physicsSprites.add(chest);
 
         camera.viewportWidth = HorrorMain.WIDTH/4;
@@ -178,7 +189,25 @@ public class GameState extends State{
         if(Gdx.input.isKeyPressed(Input.Keys.F)){   // F to equip flashlight
             player.setItem(0, 1);
         }
-        if(Gdx.input.isKeyPressed(Input.Keys.SPACE)){player.getBody().applyLinearImpulse(-1000,1000, player.getX(),player.getY(),true);}
+        if (Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
+            // Try to grab the chest only if joint doesn't exist
+            if (grabJoint == null && player.getPosition().dst(chest.getPosition()) < 45f) {
+                RevoluteJointDef def = new RevoluteJointDef();
+                def.bodyA = player.getBody();
+                def.bodyB = chest.getBody();
+                def.collideConnected = false;
+                def.localAnchorA.set(0, 0);
+                def.localAnchorB.set(40, 0);
+
+                grabJoint = (RevoluteJoint) world.createJoint(def);
+            }
+        } else {
+            // Release joint when Space is released
+            if (grabJoint != null) {
+                world.destroyJoint(grabJoint);
+                grabJoint = null;
+            }
+        }
     }
 
     @Override
@@ -216,20 +245,23 @@ public class GameState extends State{
 
         for (Rectangle bound : bounds){     // Check X collision
                 if (player.collidesLeft(bound)) {  //Walking left into boundary
-                    player.getBody().setTransform(bound.x + bound.width + 1, player.getPosition().y, 0);
+                    player.getBody().setTransform(bound.x + bound.width + player.getWidth()/2, player.getPosition().y, 0);
                     player.setVelocity(0, player.getVelY());
                 } else if (player.collidesRight(bound)) { //Walking right into boundary
-                    player.getBody().setTransform(bound.x - player.getWidth() / 2 - 1, player.getPosition().y, 0);
+                    player.getBody().setTransform(bound.x - player.getWidth() / 2, player.getPosition().y, 0);
                     player.setVelocity(0, player.getVelY());
                 }
                 if (player.collidesUp(bound)) {    // Check Y collision   //walking Up into boundary
-                    player.getBody().setTransform(player.getPosition().x, bound.y - player.getHeight() / 2 - 1, 0);
+                    player.getBody().setTransform(player.getPosition().x, bound.y - player.getHeight() / 2, 0);
                     player.setVelocity(player.getVelX(), 0);
                 } else if (player.collidesDown(bound)) {    //Walking down into boundary
                     player.getBody().setTransform(player.getPosition().x, bound.y + bound.height + player.getHeight()/2, 0);
                     player.setVelocity(player.getVelX(), 0);
             }
-
+                shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+                shapeRenderer.setColor(Color.RED);
+                shapeRenderer.rect(bound.x, bound.y, bound.width, bound.height);
+                shapeRenderer.end();
         }
 
         ball.update();
@@ -245,6 +277,8 @@ public class GameState extends State{
         }else {camera.position.set(player.getPosition().x, player.getPosition().y, 0);}
 
         camera.update();
+
+        //HOUSE
 
         entry(new HouseState(gsm, manager),150 + (HOUSE_WIDTH / 2), 560 ); // Enter house if at house door
 
@@ -289,6 +323,7 @@ public class GameState extends State{
         // 1. DRAW WORLD INTO FBO (the framebufferer)
         // -------------------------------------------------------
         fbo.begin();
+        Gdx.gl.glClearColor(0,0,0,0);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         time += Gdx.graphics.getDeltaTime();
@@ -302,13 +337,13 @@ public class GameState extends State{
 
         // Draw world
         mapDrawer.render(sb);
-        mapDrawer2.render(sb);
         sb.draw(house, 144, 544, HOUSE_WIDTH, HOUSE_HEIGHT);
         if(!debugMode) {
             player.render(sb);
             ball.render(sb);
             chest.render(sb);
         }
+        mapDrawer2.render(sb);
         sb.end();
         fbo.end();
 
@@ -388,6 +423,7 @@ public class GameState extends State{
             debugInfo.setFontScale(0.2f);
             debugInfo.setPosition(camera.position.x - 157, camera.position.y + 70);
             debugInfo.draw(sb, 1f);
+
 
             player.render(sb);
             ball.render(sb);
