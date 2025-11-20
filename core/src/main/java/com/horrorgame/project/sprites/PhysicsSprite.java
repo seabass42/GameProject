@@ -49,12 +49,6 @@ public abstract class PhysicsSprite extends Sprite {
     public Label getLabel() { return label; }
     public String getName() { return name; }
 
-    /** setter */
-    public void setSpritePosition(float x, float y) {
-        this.x = x;
-        this.y = y;
-        body.setTransform(x, y, 0);
-    }
 
     /** Sets a box-shaped fixture */
     protected void setBoxFixture(float width, float height) {
@@ -106,6 +100,9 @@ public abstract class PhysicsSprite extends Sprite {
     }
 
     public Body getBody() {return body;}
+
+    /** setter */
+
 
     /** Attach a light to this sprite */
     public void attachLight(Light light) {

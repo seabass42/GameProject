@@ -22,8 +22,6 @@ public class Player extends PhysicsSprite {
     private float speed = 20;
     private boolean facingLeft = false;
     public boolean hasLight = true;
-    public boolean movementLocked = false;
-    private float unlockThreshold = 0.05f;  //nearly stopped
 
     private TextureAtlas atlas;
     private Animation<TextureRegion> walkAnimation;
@@ -48,7 +46,10 @@ public class Player extends PhysicsSprite {
     public boolean isTired = false;
     private boolean canRun = true;
 
-    private Rectangle hitbox;
+    private Rectangle hitboxUp;
+    private Rectangle hitboxLeft;
+    private Rectangle hitboxRight;
+    private Rectangle hitboxDown;
 
     private int[] inventory;
 
@@ -77,16 +78,23 @@ public class Player extends PhysicsSprite {
         tired = Gdx.audio.newSound(Gdx.files.internal("assets/sounds/player/heartbeat.wav"));
         out_of_breath = Gdx.audio.newSound(Gdx.files.internal("assets/sounds/player/out-of-breath2.ogg"));
 
-        hitbox = new Rectangle(x,y,width,height);
+        hitboxLeft = new Rectangle(x-width/2,y+5,width/2,height-10);
+        hitboxRight = new Rectangle(x+width/2,y+5,width/2,height-10);
+        hitboxUp = new Rectangle(x+5,y+height/2,width-10,height/2);
+        hitboxDown = new Rectangle(x+5,y-height/2,width-10,height/2);
+
         inventory = new int[4];
         inventory[0] = 0;
 
         // Inventory key: 0 = flashlight, 1 = item1, 2 = item2, 3 = item3
     }
     //  Check if player is colliding with something
-    public boolean collides(Rectangle rect){
-        return hitbox.overlaps(rect);
+    public boolean collidesLeft(Rectangle rect){
+        return hitboxLeft.overlaps(rect);
     }
+    public boolean collidesRight(Rectangle rect) { return hitboxRight.overlaps(rect); }
+    public boolean collidesUp(Rectangle rect){ return hitboxUp.overlaps(rect); }
+    public boolean collidesDown(Rectangle rect){ return hitboxDown.overlaps(rect); }
     public int checkInventory(int index){
         return inventory[index];
     }
@@ -94,7 +102,48 @@ public class Player extends PhysicsSprite {
         inventory[index] = item;
     }
 
+    public void setVelocity(float x, float y){
+        velocity.x = x;
+        velocity.y = y;
+    }
+
+    public Rectangle getHitboxLeft(){
+        return hitboxLeft;
+    }
+    public Rectangle getHitboxRight(){
+        return hitboxRight;
+    }
+    public Rectangle getHitboxUp(){
+        return hitboxUp;
+    }
+    public Rectangle getHitboxDown(){
+        return hitboxDown;
+    }
+
+
+    private ArrayList<Sound> loadSounds(String basePath, int count) {
+        ArrayList<Sound> list = new ArrayList<>();
+        for (int i = 1; i <= count; i++) {
+            list.add(Gdx.audio.newSound(Gdx.files.internal(basePath + i + ".wav")));
+        }
+        return list;
+    }
+
+    public float getVelX(){
+        return velocity.x;
+    }
+    public float getVelY(){
+        return velocity.y;
+    }
+
+    public void setDirection(boolean facingLeft) { this.facingLeft = facingLeft; }
+
+    public float getAngleBetweenObj(Vector2 v1, Vector2 v2) {
+        return v2.cpy().sub(v1).angle();
+    }
+
     public void update(float dt) {
+
         boolean shiftPressed = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT);
         canRun = shiftPressed && !isTired;
         // Update stamina
@@ -126,7 +175,7 @@ public class Player extends PhysicsSprite {
         footsteps = canRun ? loadSounds("assets/sounds/player/LightDirtRun", 4)
             : loadSounds("assets/sounds/player/LightDirt", 4);
         walkAnimation.setFrameDuration(canRun ? 0.045f : 0.06f);
-
+        //END OF STAMINA
         // Reset movement
         velocity.set(0, 0);
 
@@ -161,53 +210,13 @@ public class Player extends PhysicsSprite {
         }
 
         //Move body and hitbox
-        hitbox.setPosition(body.getPosition().x-width/2, body.getPosition().y-height/2);
+        hitboxLeft.setPosition(body.getPosition().x-width/2,body.getPosition().y-height/4);
+        hitboxRight.setPosition(body.getPosition().x,body.getPosition().y-height/4);
+        hitboxUp.setPosition(body.getPosition().x-width/4,body.getPosition().y);
+        hitboxDown.setPosition(body.getPosition().x-width/4, body.getPosition().y-height/2);
         // Apply collision pushback AFTER movement:
-        if (!movementLocked) {
-            // Apply player input normally
-            body.setLinearVelocity(velocity.x, velocity.y);
-        }
-
-        // If movement is locked, check when body fully stops so we can unlock it
-        else {
-            Vector2 v = body.getLinearVelocity();
-            if (Math.abs(v.x) < unlockThreshold && Math.abs(v.y) < unlockThreshold) {
-                movementLocked = false;   // regain control
-                body.setLinearVelocity(0, 0);
-            }
-        }
+        body.setLinearVelocity(velocity.x, velocity.y);
         super.update();
-    }
-
-    public void setVelocity(float x, float y){
-        velocity.x = x;
-        velocity.y = y;
-    }
-
-    public Rectangle getHitbox(){
-        return hitbox;
-    }
-
-
-    private ArrayList<Sound> loadSounds(String basePath, int count) {
-        ArrayList<Sound> list = new ArrayList<>();
-        for (int i = 1; i <= count; i++) {
-            list.add(Gdx.audio.newSound(Gdx.files.internal(basePath + i + ".wav")));
-        }
-        return list;
-    }
-
-    public float getVelX(){
-        return velocity.x;
-    }
-    public float getVelY(){
-        return velocity.y;
-    }
-
-    public void setDirection(boolean facingLeft) { this.facingLeft = facingLeft; }
-
-    public float getAngleBetweenObj(Vector2 v1, Vector2 v2) {
-        return v2.cpy().sub(v1).angle();
     }
 
     public void render(SpriteBatch batch) {

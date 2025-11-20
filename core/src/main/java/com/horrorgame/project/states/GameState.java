@@ -205,35 +205,24 @@ public class GameState extends State{
         cameraTarget.x += (player.getPosition().x - cameraTarget.x) * lerp * dt;
         cameraTarget.y += (player.getPosition().y - cameraTarget.y) * lerp * dt;
 
-        //Hitbox collisions
+        /*-------------------------HITBOX COLLISIONS--------------------*/
         player.update(dt);
 
-        float lastVelx = 0f;
 
-        for (Rectangle bound : new Array.ArrayIterator<>(bounds)) {
-
-            if (player.collides(bound)) {
-
-                if (player.getVelX() > 0) {           // hit right wall
-                    player.movementLocked = true;
-                    player.getBody().applyLinearImpulse(-10000f, 0f,
-                        player.getPosition().x, player.getPosition().y, true);
+        for (Rectangle bound : bounds){     // Check X collision
+                if (player.collidesLeft(bound)) {  //Walking left into boundary
+                    player.getBody().setTransform(bound.x + bound.width + 1, player.getPosition().y, 0);
+                    player.setVelocity(0, player.getVelY());
+                } else if (player.collidesRight(bound)) { //Walking right into boundary
+                    player.getBody().setTransform(bound.x - player.getWidth() / 2 - 1, player.getPosition().y, 0);
+                    player.setVelocity(0, player.getVelY());
                 }
-                else if (player.getVelX() < 0) {      // hit left wall
-                    player.movementLocked = true;
-                    player.getBody().applyLinearImpulse(10000f, 0f,
-                        player.getPosition().x, player.getPosition().y, true);
-                }
-                else if (player.getVelY() > 0) {      // hit top wall
-                    player.movementLocked = true;
-                    player.getBody().applyLinearImpulse(0f, -10000f,
-                        player.getPosition().x, player.getPosition().y, true);
-                }
-                else if (player.getVelY() < 0) {      // hit bottom wall
-                    player.movementLocked = true;
-                    player.getBody().applyLinearImpulse(0f, 10000f,
-                        player.getPosition().x, player.getPosition().y, true);
-                }
+                if (player.collidesUp(bound)) {    // Check Y collision   //walking Up into boundary
+                    player.getBody().setTransform(player.getPosition().x, bound.y - player.getHeight() / 2 - 1, 0);
+                    player.setVelocity(player.getVelX(), 0);
+                } else if (player.collidesDown(bound)) {    //Walking down into boundary
+                    player.getBody().setTransform(player.getPosition().x, bound.y + bound.height + player.getHeight()/2, 0);
+                    player.setVelocity(player.getVelX(), 0);
             }
 
         }
@@ -405,9 +394,14 @@ public class GameState extends State{
 
                 shapeRenderer.rect(x, y, w, h);
             }
-            Gdx.gl.glLineWidth(6);
             shapeRenderer.setColor(Color.GREEN);
-            shapeRenderer.rect(player.getHitbox().x, player.getHitbox().y, player.getHitbox().width, player.getHitbox().height);
+            shapeRenderer.rect(player.getHitboxLeft().x, player.getHitboxLeft().y, player.getHitboxLeft().width, player.getHitboxLeft().height);
+            shapeRenderer.setColor(Color.CYAN);
+            shapeRenderer.rect(player.getHitboxRight().x, player.getHitboxRight().y, player.getHitboxRight().width, player.getHitboxRight().height);
+            shapeRenderer.setColor(Color.BLUE);
+            shapeRenderer.rect(player.getHitboxUp().x, player.getHitboxUp().y, player.getHitboxUp().width, player.getHitboxUp().height);
+            shapeRenderer.setColor(Color.RED);
+            shapeRenderer.rect(player.getHitboxDown().x, player.getHitboxDown().y, player.getHitboxDown().width, player.getHitboxDown().height);
             shapeRenderer.end();
 
         } else {
