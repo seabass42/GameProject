@@ -6,9 +6,9 @@ import box2dLight.RayHandler;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.*;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
@@ -19,16 +19,18 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.*;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.horrorgame.project.HorrorMain;
+import com.horrorgame.project.Text.RPGText;
 import com.horrorgame.project.sprites.Ball;
 import com.horrorgame.project.sprites.Chest;
 import com.horrorgame.project.sprites.PhysicsSprite;
 import com.horrorgame.project.sprites.Player;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 
-import java.awt.*;
 import java.util.ArrayList;
 import com.horrorgame.project.Tiles.MapData;
 import com.horrorgame.project.Tiles.MapDrawer;
@@ -48,7 +50,9 @@ public class GameState extends State{
 
 
     //Body category bits
-    private Skin skin;
+    private MapDrawer mapDrawer, mapDrawer2;
+    private Stage stage;
+    private Skin textSkin;
 
     //Cursor Position as Vector2
     private Vector2 cursorPosition = new Vector2();
@@ -59,12 +63,8 @@ public class GameState extends State{
     private ArrayList<PhysicsSprite> physicsSprites = new ArrayList<>();
     private static Ball ball;
     private static Chest chest;
-
     private static Player player;
     private final Vector2 cameraTarget = new Vector2();
-
-
-
     private SpriteBatch batch;
     public static OrthographicCamera camera = new OrthographicCamera();
 
@@ -80,6 +80,11 @@ public class GameState extends State{
     private Sound flashlight_click;
     private Sound light_hum;
 
+    private Music ambience, lakeAmbience;
+    private Rectangle lakeRange1 = new Rectangle(816, 0, 96, HorrorMain.HEIGHT);
+    private Rectangle lakeRange2 = new Rectangle(912, 0, 368, HorrorMain.HEIGHT);
+    private boolean inLakeRange = false;
+
     //Test background and objects
     private Texture tileset;
     private TextureRegion[][] tiles;
@@ -87,11 +92,16 @@ public class GameState extends State{
 
     //  Collision
     private Array<Rectangle> bounds = new Array<>();
+    private Texture house;
+    private final int HOUSE_HEIGHT = 105;
+    private final int HOUSE_WIDTH = 116;
 
 
     public GameState(GameStateManager gsm, AssetManager manager){
         super(gsm);
         this.manager = manager;
+        mapDrawer = new MapDrawer(MapData.MainMap);
+        mapDrawer2 = new MapDrawer(MapData.MainMapLayer2);
         fbo = new FrameBuffer(Pixmap.Format.RGBA8888, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
 
         String vertexShader = Gdx.files.internal("shaders/vertex.glsl").readString();
@@ -99,11 +109,11 @@ public class GameState extends State{
         shaderProgram = new ShaderProgram(vertexShader,fragmentShader);
         shaderProgram.pedantic = false;
 
-        skin = manager.get("vhsui/vhs-ui.json", Skin.class);
+        textSkin = manager.get("vhsui/vhs-ui.json", Skin.class);
         flashlight_click = manager.get("sounds/objectInteractions/flashlight_click.wav", Sound.class);
         light_hum = manager.get("sounds/objectInteractions/light-hum.mp3", Sound.class);
 
-
+        house = manager.get("House/House.png", Texture.class);
         player = new Player("player", new Texture("assets/sprites/idleSprites.png"),
             HorrorMain.WIDTH/2,HorrorMain.HEIGHT/2,20,26.25f);
         physicsSprites.add(player);
@@ -118,7 +128,7 @@ public class GameState extends State{
 
         camera.viewportWidth = HorrorMain.WIDTH/4;
         camera.viewportHeight = HorrorMain.HEIGHT/4;
-
+        stage = new Stage(new ScreenViewport());
 
         /** -----------------LIGHTING-----------------------------------*/
         rayHandler.setCombinedMatrix(camera.combined);
@@ -140,21 +150,13 @@ public class GameState extends State{
 
         createBounds(bounds);
 
+        RPGText text1 = new RPGText("This is a test", textSkin);
+        text1.setPosition(HorrorMain.WIDTH/2,HorrorMain.HEIGHT/2);
+        stage.addActor(text1);
+        ambience = Gdx.audio.newMusic(Gdx.files.internal("GameStateMusic/outsideambience.mp3"));
+        lakeAmbience = Gdx.audio.newMusic(Gdx.files.internal("GameStateMusic/lakeambience.mp3"));
+        lakeAmbience.setVolume(0.3f);
     }
-
-    private void createBounds(Array<Rectangle> bounds) {
-        //Map hitboxes
-        bounds.add(new com.badlogic.gdx.math.Rectangle(0,0, HorrorMain.WIDTH, 112)); // bottom
-        bounds.add(new com.badlogic.gdx.math.Rectangle(0,0, 96, HorrorMain.HEIGHT)); // left
-        bounds.add(new com.badlogic.gdx.math.Rectangle(80, (HorrorMain.HEIGHT - 64), 448, 64)); // top left
-        bounds.add(new com.badlogic.gdx.math.Rectangle(656, (HorrorMain.HEIGHT - 64) , 368, 64)); // top right
-        bounds.add(new com.badlogic.gdx.math.Rectangle(848, 80, 128, 80)); // lower right corner
-        bounds.add(new com.badlogic.gdx.math.Rectangle(992, 160, 192, 224));  // under bridge
-        bounds.add(new com.badlogic.gdx.math.Rectangle(992, 464, 192, 208)); // above bridge
-
-        bounds.add(new Rectangle(544, HorrorMain.HEIGHT - 64, 80, 32)); // EXIT (Must be last)
-    }
-
 
     @Override
     protected void setDebugMode() {
@@ -182,6 +184,9 @@ public class GameState extends State{
     @Override
     public void update(float dt) { //Logic
         handleInput();
+
+        ambience.play();
+        ambience.setLooping(true);
 
         // Smoothly approach target intensity
         float target = player.isTired ? 1f : 0f;
@@ -240,6 +245,19 @@ public class GameState extends State{
         }else {camera.position.set(player.getPosition().x, player.getPosition().y, 0);}
 
         camera.update();
+
+        entry(new HouseState(gsm, manager),150 + (HOUSE_WIDTH / 2), 560 ); // Enter house if at house door
+
+        if (player.collidesRight(lakeRange1)){
+            lakeAmbience.setVolume(0.15f);
+            lakeAmbience.play();
+        }
+        else if (player.collidesRight(lakeRange2)){
+            lakeAmbience.setVolume(0.4f);
+        }
+        else{
+            lakeAmbience.pause();
+        }
     }
 
     //METHODS FOR FLASHLIGHT
@@ -283,10 +301,9 @@ public class GameState extends State{
         world.step(1/60f, 6, 2);
 
         // Draw world
-        MapDrawer mapDrawer = new MapDrawer(MapData.MainMap);
         mapDrawer.render(sb);
-        MapDrawer second = new MapDrawer(MapData.MainMapLayer2);
-        second.render(sb);
+        mapDrawer2.render(sb);
+        sb.draw(house, 144, 544, HOUSE_WIDTH, HOUSE_HEIGHT);
         if(!debugMode) {
             player.render(sb);
             ball.render(sb);
@@ -367,7 +384,7 @@ public class GameState extends State{
                 label.draw(sb, 1f);
             }
 
-            Label debugInfo = new Label("Press 2 and 7 to exit debugMode", skin);
+            Label debugInfo = new Label("Press 2 and 7 to exit debugMode", textSkin);
             debugInfo.setFontScale(0.2f);
             debugInfo.setPosition(camera.position.x - 157, camera.position.y + 70);
             debugInfo.draw(sb, 1f);
@@ -408,19 +425,47 @@ public class GameState extends State{
             //Lights activated when outside debugMOde
             rayHandler.setCombinedMatrix(camera);
             rayHandler.updateAndRender();
+
+        }
+        // Show text
+        stage.act(Gdx.graphics.getDeltaTime());
+        stage.draw();
+    }
+
+    private void createBounds(Array<Rectangle> bounds){
+        bounds.add(new Rectangle(0,0, HorrorMain.WIDTH, 112)); // bottom
+        bounds.add(new Rectangle(0,0, 96, HorrorMain.HEIGHT)); // left
+        bounds.add(new Rectangle(80, (HorrorMain.HEIGHT - 64), 448, 64)); // top left
+        bounds.add(new Rectangle(656, (HorrorMain.HEIGHT - 64) , 368, 64)); // top right
+        bounds.add(new Rectangle(848, 80, 128, 80)); // lower right corner
+        bounds.add(new Rectangle(992, 160, 192, 224));  // under bridge
+        bounds.add(new Rectangle(992, 464, 192, 208)); // above bridge
+        bounds.add(new Rectangle(150, 560, HOUSE_WIDTH - 16, HOUSE_HEIGHT)); // House
+        bounds.add(new Rectangle(130 + (HOUSE_WIDTH / 2), 560, 8,16)); // House door
+
+        bounds.add(new Rectangle(544, HorrorMain.HEIGHT - 64, 96, 32)); // EXIT (MUST be last)
+    }
+
+    @Override
+    public void resize(int width, int height){
+
+    }
+    private void entry(State state, int x, int y){ // If rectangle is an entry point (16w x 16h), push requested state
+        if (player.collidesUp(new Rectangle(x,y,8,16))){
+            ambience.pause();
+            gsm.push(state);
+
         }
     }
-
-
-
     @Override
-    public void dispose() {
+    public void dispose() { // Prevent memory leaks!
+        rayHandler.dispose();
         world.dispose();
-        shaderProgram.dispose();
-    }
-
-    @Override
-    public void resize(int width, int height) {
-
+        flashlight.dispose();
+        ambientLight.dispose();
+        manager.dispose();
+        stage.dispose();
+        ambience.dispose();
+        lakeAmbience.dispose();
     }
 }

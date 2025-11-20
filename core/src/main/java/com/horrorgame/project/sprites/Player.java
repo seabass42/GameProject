@@ -181,16 +181,16 @@ public class Player extends PhysicsSprite {
 
         // Determine movement direction
         if (allowDiagonals) {
-            if (Gdx.input.isKeyPressed(Input.Keys.W)) velocity.y = speed;
-            if (Gdx.input.isKeyPressed(Input.Keys.S)) velocity.y = -speed;
-            if (Gdx.input.isKeyPressed(Input.Keys.A)) { velocity.x = -speed; facingLeft = true; }
-            if (Gdx.input.isKeyPressed(Input.Keys.D)) { velocity.x = speed; facingLeft = false; }
+            if (Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP)) velocity.y = speed;
+            if (Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.DOWN)) velocity.y = -speed;
+            if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT)) { velocity.x = -speed; facingLeft = true; }
+            if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) { velocity.x = speed; facingLeft = false; }
         } else {
             // No diagonals
-            if (Gdx.input.isKeyPressed(Input.Keys.W)) {velocity.y = speed;}
-            else if (Gdx.input.isKeyPressed(Input.Keys.S)) {velocity.y = -speed;}
-            else if (Gdx.input.isKeyPressed(Input.Keys.A)) { velocity.x = -speed; facingLeft = true;}
-            else if (Gdx.input.isKeyPressed(Input.Keys.D)) { velocity.x = speed; facingLeft = false;}
+            if (Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP)) {velocity.y = speed;}
+            else if (Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.DOWN)) {velocity.y = -speed;}
+            else if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT)) { velocity.x = -speed; facingLeft = true;}
+            else if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) { velocity.x = speed; facingLeft = false;}
         }
 
         //Walking

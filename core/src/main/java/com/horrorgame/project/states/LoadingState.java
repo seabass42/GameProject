@@ -48,6 +48,14 @@ public class LoadingState extends State {
             // Add other assets (sounds, maps, etc.) here
             manager.load("sounds/objectInteractions/flashlight_click.wav", Sound.class);
             manager.load("House/House.png", Texture.class);
+        manager.load("sounds/objectInteractions/light-hum.mp3", Sound.class);
+        manager.load("House/House.png", Texture.class);
+        manager.load("House/amnesia_room1.jpeg", Texture.class);
+        manager.load("House/amnesia_room2.png", Texture.class);
+    }
+
+    @Override
+    protected void setDebugMode() {
 
     }
 
