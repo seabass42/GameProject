@@ -4,11 +4,8 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -40,20 +37,21 @@ public class MenuState extends State {
         hoverSelect = manager.get("sounds/gui/hoverSelect.wav", Sound.class);
         skin = manager.get("vhsui/vhs-ui.json", Skin.class);
 
-        stage = new Stage(new FitViewport(HorrorMain.WIDTH, HorrorMain.HEIGHT)); //Set up stage
+
+        stage = new Stage(new ScreenViewport()); //Set up stage
         Gdx.input.setInputProcessor(stage);
 
         table = new Table();    //Set up table onto stage
         table.setPosition(300,300);
         stage.addActor(table);
-        title = new Label(HorrorMain.TITLE, skin);
-        title.setPosition(HorrorMain.WIDTH, HorrorMain.HEIGHT, Align.center);
+        title = new Label(HorrorMain.TITLE, skin, "title");
+        title.setPosition(200, HorrorMain.HEIGHT - 48, Align.center);
         stage.addActor(title);
 
-        playButton = new TextButton("Play",skin);   //Add menu buttons
+        playButton = new TextButton("Play",skin);   // Add menu buttons
         exitButton = new TextButton("Exit", skin);
         creditsButton = new TextButton("Credits", skin);
-        table.padTop(60);   //Improve spacing between buttons
+        table.padTop(60);
         table.add(playButton).padBottom(20);
         table.row();
         table.add(creditsButton).padBottom(20);

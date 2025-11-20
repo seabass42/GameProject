@@ -1,6 +1,7 @@
 /*
     MapDrawer is designed to fully render any given 2D array of integers that
-    reference tiles in Tileset.png
+    reference tiles in Tileset.png and fence_barbed.png. To add new tilesets,
+    you must add condition for its GID in render()
  */
 package com.horrorgame.project.Tiles;
 import com.badlogic.gdx.graphics.Texture;

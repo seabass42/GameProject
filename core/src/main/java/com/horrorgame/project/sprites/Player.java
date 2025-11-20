@@ -42,11 +42,9 @@ public class Player implements InputProcessor {
 
     private int[] inventory;
 
-
     public Player(float x, float y) {
         position.set(x, y);
         centerOfPlayer.set(x+40, y+50);
-
         atlas = new TextureAtlas(Gdx.files.internal("assets/sprites/idleSprites.atlas"));
         idleAnimation = new Animation<>(0.1f, atlas.findRegions("idle"));
         idleAnimation.setPlayMode(Animation.PlayMode.LOOP);
@@ -133,6 +131,7 @@ public class Player implements InputProcessor {
         centerOfPlayer.x = position.x + 20;
         centerOfPlayer.y = position.y + 20;
         hitbox.setPosition(position);
+
     }
     public void setVelocity(float x, float y){
         walkSpeed.x = x;
@@ -180,6 +179,7 @@ public class Player implements InputProcessor {
             currentFrame.flip(true, false);
         }
         batch.draw(currentFrame, position.x, position.y,20,32);
+
     }
 
 

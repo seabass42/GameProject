@@ -2,6 +2,8 @@ package com.horrorgame.project.states;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.assets.loaders.MusicLoader;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -48,6 +50,8 @@ public class LoadingState extends State {
             // Add other assets (sounds, maps, etc.) here
             manager.load("sounds/objectInteractions/flashlight_click.wav", Sound.class);
             manager.load("House/House.png", Texture.class);
+            manager.load("House/amnesia_room1.jpeg", Texture.class);
+            manager.load("House/amnesia_room2.png", Texture.class);
 
     }
 
