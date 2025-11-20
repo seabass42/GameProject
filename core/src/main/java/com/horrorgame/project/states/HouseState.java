@@ -26,12 +26,6 @@ public class HouseState extends State{
         Gdx.input.setInputProcessor(stage);
 
     }
-
-    @Override
-    protected void setDebugMode() {
-
-    }
-
     @Override
     protected void handleInput() {
 
