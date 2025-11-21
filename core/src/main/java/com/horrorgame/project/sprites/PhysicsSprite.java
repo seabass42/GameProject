@@ -71,7 +71,7 @@ public abstract class PhysicsSprite extends Sprite {
         fixtureDef.restitution = 0.3f;
 
         body.createFixture(fixtureDef);
-        body.setLinearDamping(7f);
+        body.setLinearDamping(10f);
         body.setAngularDamping(7f);
         body.setFixedRotation(false);
         shape.dispose();

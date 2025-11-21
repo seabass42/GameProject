@@ -62,7 +62,7 @@ public class Player extends PhysicsSprite {
 
         // Create matching Box2D body
         setBoxFixture(width, height);
-        body.setType(BodyDef.BodyType.KinematicBody); // ignore collisions but still movable
+        body.setType(BodyDef.BodyType.DynamicBody); // ignore collisions but still movable
 
         // Load animations
         atlas = new TextureAtlas(Gdx.files.internal("assets/sprites/idleSprites.atlas"));
@@ -136,8 +136,8 @@ public class Player extends PhysicsSprite {
 
     public void setDirection(boolean facingLeft) { this.facingLeft = facingLeft; }
 
-    public float getAngleBetweenObj(Vector2 v1, Vector2 v2) {
-        return v2.cpy().sub(v1).angle();
+    public float getAngleBetweenObj(Vector2 v1) {
+        return v1.cpy().sub(getPosition()).angle();
     }
 
     public void update(float dt) {

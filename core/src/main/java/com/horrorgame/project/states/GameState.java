@@ -19,18 +19,13 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.*;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.physics.box2d.joints.RevoluteJoint;
-import com.badlogic.gdx.physics.box2d.joints.RevoluteJointDef;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.horrorgame.project.HorrorMain;
 import com.horrorgame.project.Text.RPGText;
-import com.horrorgame.project.sprites.Ball;
-import com.horrorgame.project.sprites.Chest;
-import com.horrorgame.project.sprites.PhysicsSprite;
-import com.horrorgame.project.sprites.Player;
+import com.horrorgame.project.sprites.*;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 
 import java.util.ArrayList;
@@ -65,8 +60,12 @@ public class GameState extends State{
 
     private ArrayList<PhysicsSprite> physicsSprites = new ArrayList<>();
     private static Ball ball;
-    private static Chest chest;
-    private static Player player;
+    private static Chest log;
+    private static Chest log2;
+    public static Player player;
+    private static Eye leftEye;
+    private static Eye rightEye;
+    private Sound eyeSound;
     private final Vector2 cameraTarget = new Vector2();
     private SpriteBatch batch;
     public static OrthographicCamera camera = new OrthographicCamera();
@@ -100,8 +99,6 @@ public class GameState extends State{
     private final int HOUSE_WIDTH = 116;
 
     //Player capabilities
-    private boolean grabbing = false;
-    private RevoluteJoint grabJoint;
 
 
     public GameState(GameStateManager gsm, AssetManager manager){
@@ -133,9 +130,19 @@ public class GameState extends State{
             HorrorMain.WIDTH/2, (HorrorMain.HEIGHT/2-100),10, false);
         physicsSprites.add(ball);
 
-        chest = new Chest("chest", new Texture("assets/sprites/chest.png"),
+        log = new Chest("log", new Texture("assets/sprites/log.png"),
             HorrorMain.WIDTH/3, HorrorMain.HEIGHT/3, 60, 20, false);
-        physicsSprites.add(chest);
+        physicsSprites.add(log);
+
+        log2 = new Chest("log2", new Texture("assets/sprites/log.png"),
+            HorrorMain.WIDTH/3+50, HorrorMain.HEIGHT/3-100, 60, 20, false);
+        physicsSprites.add(log2);
+
+        leftEye = new Eye(HorrorMain.WIDTH / 2 - 50, HorrorMain.HEIGHT / 2);
+        physicsSprites.add(leftEye);
+        rightEye = new Eye(HorrorMain.WIDTH / 2, HorrorMain.HEIGHT / 2);
+        physicsSprites.add(rightEye);
+        eyeSound = manager.get("sounds/gnid.ogg", Sound.class);
 
         camera.viewportWidth = HorrorMain.WIDTH/4;
         camera.viewportHeight = HorrorMain.HEIGHT/4;
@@ -186,28 +193,10 @@ public class GameState extends State{
             clickFlashlight();
             flashlight_click.play();
         }
-        if(Gdx.input.isKeyPressed(Input.Keys.F)){   // F to equip flashlight
+        if(Gdx.input.isKeyJustPressed(Input.Keys.F)){   // F to equip flashlight
             player.setItem(0, 1);
         }
-        if (Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
-            // Try to grab the chest only if joint doesn't exist
-            if (grabJoint == null && player.getPosition().dst(chest.getPosition()) < 45f) {
-                RevoluteJointDef def = new RevoluteJointDef();
-                def.bodyA = player.getBody();
-                def.bodyB = chest.getBody();
-                def.collideConnected = false;
-                def.localAnchorA.set(0, 0);
-                def.localAnchorB.set(40, 0);
 
-                grabJoint = (RevoluteJoint) world.createJoint(def);
-            }
-        } else {
-            // Release joint when Space is released
-            if (grabJoint != null) {
-                world.destroyJoint(grabJoint);
-                grabJoint = null;
-            }
-        }
     }
 
     @Override
@@ -222,7 +211,6 @@ public class GameState extends State{
         float speed = 2f; // how fast the shader ramps up/down
         tiredShaderIntensity += (target - tiredShaderIntensity) * dt * speed;
 
-
         //For getting cursor X and Y NOT according to camera
         // (otherwise it gets left behind when the player walks)
         cursorToWorldVec.set(Gdx.input.getX(), Gdx.input.getY(), 0);
@@ -235,7 +223,7 @@ public class GameState extends State{
         //ambientLight.setPosition(cursorPosition.x, cursorPosition.y);
 
         // Follow player but NOT instantly — this creates softness that allows shake to work
-        float lerp = 6f;  // increase for tighter following
+        float lerp = 0.3f;  // increase for tighter following
         cameraTarget.x += (player.getPosition().x - cameraTarget.x) * lerp * dt;
         cameraTarget.y += (player.getPosition().y - cameraTarget.y) * lerp * dt;
 
@@ -265,7 +253,12 @@ public class GameState extends State{
         }
 
         ball.update();
-        chest.update();
+        log.update();
+        log2.update();
+        if(leftEye != null && rightEye != null) {
+            leftEye.update();
+            rightEye.update();
+        }
         flashlightUpdate();
 
 
@@ -277,6 +270,16 @@ public class GameState extends State{
         }else {camera.position.set(player.getPosition().x, player.getPosition().y, 0);}
 
         camera.update();
+
+        //THE EYES MIRAGE (still working on them)
+        if(player.isTired) {
+            leftEye.getBody().setTransform(cameraTarget.x, cameraTarget.y,0);
+            eyeSound.loop(0.1f);
+        }else {
+            eyeSound.stop();
+            leftEye.getBody().setTransform(player.getPosition().x - 1000, player.getPosition().y - 1000, 0);
+        }
+        rightEye.getBody().setTransform(leftEye.getPosition().x-50, leftEye.getPosition().y,0);
 
         //HOUSE
 
@@ -307,7 +310,7 @@ public class GameState extends State{
             player.setDirection(cursorPosition.x <= player.getPosition().x);
 
                 flashlight.setPosition(player.getPosition().x, player.getPosition().y);
-                flashlight.setDirection(player.getAngleBetweenObj(player.getPosition(), cursorPosition));
+                flashlight.setDirection(player.getAngleBetweenObj(cursorPosition));
 
             } else {
                 light_hum.stop();
@@ -339,9 +342,9 @@ public class GameState extends State{
         mapDrawer.render(sb);
         sb.draw(house, 144, 544, HOUSE_WIDTH, HOUSE_HEIGHT);
         if(!debugMode) {
-            player.render(sb);
-            ball.render(sb);
-            chest.render(sb);
+            for(PhysicsSprite sprite : physicsSprites) {
+                sprite.render(sb);
+            }
         }
         mapDrawer2.render(sb);
         sb.end();
@@ -417,17 +420,13 @@ public class GameState extends State{
                 );
                 label.setFontScale(0.3f);
                 label.draw(sb, 1f);
+                s.render(sb);
             }
 
-            Label debugInfo = new Label("Press 2 and 7 to exit debugMode", textSkin);
+            Label debugInfo = new Label("Press '2' and '=' to exit debugMode", textSkin);
             debugInfo.setFontScale(0.2f);
             debugInfo.setPosition(camera.position.x - 157, camera.position.y + 70);
             debugInfo.draw(sb, 1f);
-
-
-            player.render(sb);
-            ball.render(sb);
-            chest.render(sb);
 
             sb.end();
 
@@ -444,7 +443,6 @@ public class GameState extends State{
                 float y = s.getBody().getPosition().y - s.getBodyHeight() / 2f;
                 float w = s.getBodyWidth();
                 float h = s.getBodyHeight();
-
                 shapeRenderer.rect(x, y, w, h);
             }
             shapeRenderer.setColor(Color.GREEN);
