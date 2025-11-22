@@ -36,7 +36,10 @@ public class GameState extends State{
     private AssetManager manager = new AssetManager();
     private FrameBuffer fbo;
 
-    private ShaderProgram shaderProgram;
+    private ShaderProgram crtShaderProgram = new ShaderProgram(Gdx.files.internal("shaders/vertex.glsl").readString(),
+            Gdx.files.internal("shaders/crt.glsl").readString());
+    private ShaderProgram monochromeShaderProgram = new ShaderProgram(Gdx.files.internal("shaders/vertex.glsl").readString(),
+        Gdx.files.internal("shaders/blackandwhite.glsl").readString());
     private float time;
     private ShapeRenderer shapeRenderer = new ShapeRenderer();
 
@@ -45,6 +48,7 @@ public class GameState extends State{
     private boolean cameraDrag = false;
     private boolean doScreenEffects = true;
     private float tiredShaderIntensity = 0f;
+    private boolean doJumpScares = false;
 
 
     //Body category bits
@@ -111,11 +115,10 @@ public class GameState extends State{
         tex.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
         tex.setWrap(Texture.TextureWrap.ClampToEdge, Texture.TextureWrap.ClampToEdge);
 
+        //Shaders
+        crtShaderProgram.pedantic = false;
+        monochromeShaderProgram.pedantic = false;
 
-        String vertexShader = Gdx.files.internal("shaders/vertex.glsl").readString();
-        String fragmentShader = Gdx.files.internal("shaders/crt.glsl").readString();
-        shaderProgram = new ShaderProgram(vertexShader,fragmentShader);
-        shaderProgram.pedantic = false;
 
         textSkin = manager.get("vhsui/vhs-ui.json", Skin.class);
         flashlight_click = manager.get("sounds/objectInteractions/flashlight_click.wav", Sound.class);
@@ -271,15 +274,24 @@ public class GameState extends State{
 
         camera.update();
 
-        //THE EYES MIRAGE (still working on them)
-        if(player.isTired) {
+        //THE HAUNTING EYES MIRAGE (still working on them)
+        if(doJumpScares && player.isTired) {
+            if(player.getAngleBetweenObj(cursorPosition) < player.getAngleBetweenObj(leftEye.getPosition())+45
+            && player.getAngleBetweenObj(cursorPosition) > player.getAngleBetweenObj(rightEye.getPosition())-45) {
+                flashlight.setColor(Color.WHITE);
+                leftEye.setOpacity(leftEye.getPosition().dst(player.getPosition()) / 100);
+                rightEye.setOpacity(leftEye.getPosition().dst(player.getPosition()) / 100);
+                System.out.println(player.getAngleBetweenObj(cursorPosition) + "     " + player.getAngleBetweenObj(leftEye.getPosition()));
+            }else flashlight.setColor(1, 1, 1, leftEye.getPosition().dst(player.getPosition()) / 1000);
+
             leftEye.getBody().setTransform(cameraTarget.x, cameraTarget.y,0);
             eyeSound.loop(0.1f);
         }else {
+            flashlight.setColor(Color.WHITE);
             eyeSound.stop();
             leftEye.getBody().setTransform(player.getPosition().x - 1000, player.getPosition().y - 1000, 0);
         }
-        rightEye.getBody().setTransform(leftEye.getPosition().x-50, leftEye.getPosition().y,0);
+        rightEye.getBody().setTransform(leftEye.getPosition().x-40, leftEye.getPosition().y,0);
 
         //HOUSE
 
@@ -347,6 +359,15 @@ public class GameState extends State{
             }
         }
         mapDrawer2.render(sb);
+        if(doJumpScares&& leftEye.getPosition().dst(player.getPosition()) < 30) {
+            sb.setShader(monochromeShaderProgram);
+            manager.get("sounds/glitch2.ogg", Sound.class).play(0.04f);
+            sb.setColor(1,1,1,0.5f);
+            Texture eyes = new Texture("assets/eyes.jpg");
+            sb.draw(eyes, player.getPosition().x-HorrorMain.WIDTH/8, player.getPosition().y-HorrorMain.HEIGHT/8, eyes.getWidth()/2, eyes.getHeight()/2);
+            sb.setColor(1,1,1,1);
+            eyes = null;
+        }
         sb.end();
         fbo.end();
 
@@ -363,14 +384,14 @@ public class GameState extends State{
                 (float)Gdx.graphics.getHeight() / 2f / Gdx.graphics.getHeight()
             );
 
-            shaderProgram.bind();
-            shaderProgram.setUniformf("u_tiredIntensity", tiredShaderIntensity/1.7f);
-            shaderProgram.setUniformf("center", center);
-            shaderProgram.setUniformf("u_time", time);
-            shaderProgram.setUniformf("u_resolution",
+            crtShaderProgram.bind();
+            crtShaderProgram.setUniformf("u_tiredIntensity", tiredShaderIntensity/1.7f);
+            crtShaderProgram.setUniformf("center", center);
+            crtShaderProgram.setUniformf("u_time", time);
+            crtShaderProgram.setUniformf("u_resolution",
                 Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
-            sb.setShader(shaderProgram);
+            sb.setShader(crtShaderProgram);
 
         } else {
             sb.setShader(null);

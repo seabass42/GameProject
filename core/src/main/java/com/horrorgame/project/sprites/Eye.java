@@ -18,6 +18,11 @@ public class Eye extends PhysicsSprite {
         pupil.setPosition(x, y);
     }
 
+    public void setOpacity(float opacity) {
+        pupil.setAlpha(opacity);
+        setAlpha(opacity);
+    }
+
     public void update() {
 
         // Eye center (world coords)
