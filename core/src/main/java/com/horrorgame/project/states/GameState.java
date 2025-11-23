@@ -10,6 +10,7 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
@@ -48,7 +49,8 @@ public class GameState extends State{
     private boolean cameraDrag = false;
     private boolean doScreenEffects = true;
     private float tiredShaderIntensity = 0f;
-    private boolean doJumpScares = false;
+    private boolean doJumpScares = true;
+    private boolean jumpScarePlayed = false;
 
 
     //Body category bits
@@ -69,7 +71,9 @@ public class GameState extends State{
     public static Player player;
     private static Eye leftEye;
     private static Eye rightEye;
+    private static Texture eyesTexture;
     private Sound eyeSound;
+    private Sound jumpScare;
     private final Vector2 cameraTarget = new Vector2();
     private SpriteBatch batch;
     public static OrthographicCamera camera = new OrthographicCamera();
@@ -146,6 +150,8 @@ public class GameState extends State{
         rightEye = new Eye(HorrorMain.WIDTH / 2, HorrorMain.HEIGHT / 2);
         physicsSprites.add(rightEye);
         eyeSound = manager.get("sounds/gnid.ogg", Sound.class);
+        eyesTexture = new Texture("assets/eyes.jpg");
+        jumpScare = manager.get("sounds/eyeScare.wav", Sound.class);
 
         camera.viewportWidth = HorrorMain.WIDTH/4;
         camera.viewportHeight = HorrorMain.HEIGHT/4;
@@ -275,24 +281,7 @@ public class GameState extends State{
         camera.update();
 
         //THE HAUNTING EYES MIRAGE (still working on them)
-        if(doJumpScares && player.isTired) {
-            if(player.getAngleBetweenObj(cursorPosition) < player.getAngleBetweenObj(leftEye.getPosition())+45
-            && player.getAngleBetweenObj(cursorPosition) > player.getAngleBetweenObj(rightEye.getPosition())-45) {
-                flashlight.setColor(Color.WHITE);
-                leftEye.setOpacity(leftEye.getPosition().dst(player.getPosition()) / 100);
-                rightEye.setOpacity(leftEye.getPosition().dst(player.getPosition()) / 100);
-                System.out.println(player.getAngleBetweenObj(cursorPosition) + "     " + player.getAngleBetweenObj(leftEye.getPosition()));
-            }else flashlight.setColor(1, 1, 1, leftEye.getPosition().dst(player.getPosition()) / 1000);
-
-            leftEye.getBody().setTransform(cameraTarget.x, cameraTarget.y,0);
-            eyeSound.loop(0.1f);
-        }else {
-            flashlight.setColor(Color.WHITE);
-            eyeSound.stop();
-            leftEye.getBody().setTransform(player.getPosition().x - 1000, player.getPosition().y - 1000, 0);
-        }
-        rightEye.getBody().setTransform(leftEye.getPosition().x-40, leftEye.getPosition().y,0);
-
+        eyesMirageUpdate();
         //HOUSE
 
         entry(new HouseState(gsm, manager),150 + (HOUSE_WIDTH / 2), 560 ); // Enter house if at house door
@@ -359,15 +348,7 @@ public class GameState extends State{
             }
         }
         mapDrawer2.render(sb);
-        if(doJumpScares&& leftEye.getPosition().dst(player.getPosition()) < 30) {
-            sb.setShader(monochromeShaderProgram);
-            manager.get("sounds/glitch2.ogg", Sound.class).play(0.04f);
-            sb.setColor(1,1,1,0.5f);
-            Texture eyes = new Texture("assets/eyes.jpg");
-            sb.draw(eyes, player.getPosition().x-HorrorMain.WIDTH/8, player.getPosition().y-HorrorMain.HEIGHT/8, eyes.getWidth()/2, eyes.getHeight()/2);
-            sb.setColor(1,1,1,1);
-            eyes = null;
-        }
+        eyesMirageRender(sb);
         sb.end();
         fbo.end();
 
@@ -499,6 +480,44 @@ public class GameState extends State{
         bounds.add(new Rectangle(130 + (HOUSE_WIDTH / 2), 560, 8,16)); // House door
 
         bounds.add(new Rectangle(544, HorrorMain.HEIGHT - 64, 96, 32)); // EXIT (MUST be last)
+    }
+
+    public void eyesMirageUpdate(){
+        if(doJumpScares && player.tiredCount == 5 && player.isTired) {
+            if(flashOn && player.getAngleBetweenObj(cursorPosition) < player.getAngleBetweenObj(leftEye.getPosition())+45
+                && player.getAngleBetweenObj(cursorPosition) > player.getAngleBetweenObj(rightEye.getPosition())-45) {
+                flashlight.setColor(Color.WHITE);
+                leftEye.setOpacity(leftEye.getPosition().dst(player.getPosition()) / 100);
+                rightEye.setOpacity(leftEye.getPosition().dst(player.getPosition()) / 100);
+            }else {
+                flashlight.setColor(1, 1, 1, leftEye.getPosition().dst(player.getPosition()) / 1000);
+                leftEye.getBody().setTransform(cameraTarget.x, cameraTarget.y, 0);
+            }
+            eyeSound.play(0.1f);
+        }else {
+            flashlight.setColor(Color.WHITE);
+            eyeSound.stop();
+            leftEye.getBody().setTransform(player.getPosition().x - 1000, player.getPosition().y - 1000, 0);
+        }
+        rightEye.getBody().setTransform(leftEye.getPosition().x-40, leftEye.getPosition().y,0);
+
+    }
+    public void eyesMirageRender(SpriteBatch sb){
+        if(doJumpScares&& leftEye.getPosition().dst(player.getPosition()) < 30) {
+            sb.setShader(monochromeShaderProgram);
+            sb.setColor(1,1,1,0.5f);
+            sb.draw(eyesTexture, player.getPosition().x-HorrorMain.WIDTH/8, player.getPosition().y-HorrorMain.HEIGHT/8,
+                eyesTexture.getWidth()/2, eyesTexture.getHeight()/2);
+            sb.setColor(1,1,1,1);
+            if (!jumpScarePlayed) {
+                jumpScarePlayed = true;
+                jumpScare.play(1f);   // play ONCE
+            }
+
+        } else {
+            jumpScarePlayed = false;
+            //eyesTexture.dispose();// Reset when player leaves scare
+        }
     }
 
     @Override

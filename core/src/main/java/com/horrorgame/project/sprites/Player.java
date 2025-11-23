@@ -42,9 +42,10 @@ public class Player extends PhysicsSprite {
 
     private float stamina = 1f;             // Stamina level (0 to 1)
     private final float RUN_DEPLETION_TIME = 5f;    // seconds to fully deplete
-    private final float RECOVERY_TIME = 5f; // seconds to recover
+    private float RECOVERY_TIME = 5f; // seconds to recover
     public boolean isTired = false;
     private boolean canRun = true;
+    public int tiredCount = 0;
 
     private Rectangle hitboxUp;
     private Rectangle hitboxLeft;
@@ -155,10 +156,12 @@ public class Player extends PhysicsSprite {
                     tired.play(0.07f);
                     out_of_breath.play(0.1f);
                     isTired = true;
+                    tiredCount++;
                 }
             }
         } else if (stamina < 1f) {
             // Recover stamina when not running
+            if(tiredCount == 5) {RECOVERY_TIME =20;}
             stamina += dt / RECOVERY_TIME;
             if (stamina >= 1f) {
                 stamina = 1f;
@@ -166,6 +169,10 @@ public class Player extends PhysicsSprite {
             }
         }
 
+        if(tiredCount >5){
+            tiredCount = 0;
+            RECOVERY_TIME = 5f;
+        }
         // Can run only if stamina > 0
         // Adjust speed
         speed = canRun ? 50 : 30;
