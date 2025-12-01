@@ -10,6 +10,7 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
@@ -25,10 +26,7 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.horrorgame.project.HorrorMain;
 import com.horrorgame.project.Text.RPGText;
-import com.horrorgame.project.sprites.Ball;
-import com.horrorgame.project.sprites.Chest;
-import com.horrorgame.project.sprites.PhysicsSprite;
-import com.horrorgame.project.sprites.Player;
+import com.horrorgame.project.sprites.*;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 
 import java.util.ArrayList;
@@ -38,7 +36,11 @@ import com.horrorgame.project.Tiles.MapDrawer;
 public class GameState extends State{
     private AssetManager manager = new AssetManager();
     private FrameBuffer fbo;
-    private ShaderProgram shaderProgram;
+
+    private ShaderProgram crtShaderProgram = new ShaderProgram(Gdx.files.internal("shaders/vertex.glsl").readString(),
+            Gdx.files.internal("shaders/crt.glsl").readString());
+    private ShaderProgram monochromeShaderProgram = new ShaderProgram(Gdx.files.internal("shaders/vertex.glsl").readString(),
+        Gdx.files.internal("shaders/blackandwhite.glsl").readString());
     private float time;
     private ShapeRenderer shapeRenderer = new ShapeRenderer();
 
@@ -47,6 +49,8 @@ public class GameState extends State{
     private boolean cameraDrag = false;
     private boolean doScreenEffects = true;
     private float tiredShaderIntensity = 0f;
+    private boolean doJumpScares = true;
+    private boolean jumpScarePlayed = false;
 
 
     //Body category bits
@@ -62,8 +66,14 @@ public class GameState extends State{
 
     private ArrayList<PhysicsSprite> physicsSprites = new ArrayList<>();
     private static Ball ball;
-    private static Chest chest;
-    private static Player player;
+    private static Chest log;
+    private static Chest log2;
+    public static Player player;
+    private static Eye leftEye;
+    private static Eye rightEye;
+    private static Texture eyesTexture;
+    private Sound eyeSound;
+    private Sound jumpScare;
     private final Vector2 cameraTarget = new Vector2();
     private SpriteBatch batch;
     public static OrthographicCamera camera = new OrthographicCamera();
@@ -96,6 +106,8 @@ public class GameState extends State{
     private final int HOUSE_HEIGHT = 105;
     private final int HOUSE_WIDTH = 116;
 
+    //Player capabilities
+
 
     public GameState(GameStateManager gsm, AssetManager manager){
         super(gsm);
@@ -103,11 +115,14 @@ public class GameState extends State{
         mapDrawer = new MapDrawer(MapData.MainMap);
         mapDrawer2 = new MapDrawer(MapData.MainMapLayer2);
         fbo = new FrameBuffer(Pixmap.Format.RGBA8888, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
+        Texture tex = fbo.getColorBufferTexture();
+        tex.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+        tex.setWrap(Texture.TextureWrap.ClampToEdge, Texture.TextureWrap.ClampToEdge);
 
-        String vertexShader = Gdx.files.internal("shaders/vertex.glsl").readString();
-        String fragmentShader = Gdx.files.internal("shaders/crt.glsl").readString();
-        shaderProgram = new ShaderProgram(vertexShader,fragmentShader);
-        shaderProgram.pedantic = false;
+        //Shaders
+        crtShaderProgram.pedantic = false;
+        monochromeShaderProgram.pedantic = false;
+
 
         textSkin = manager.get("vhsui/vhs-ui.json", Skin.class);
         flashlight_click = manager.get("sounds/objectInteractions/flashlight_click.wav", Sound.class);
@@ -122,9 +137,21 @@ public class GameState extends State{
             HorrorMain.WIDTH/2, (HorrorMain.HEIGHT/2-100),10, false);
         physicsSprites.add(ball);
 
-        chest = new Chest("chest", new Texture("assets/sprites/chest.png"),
-            HorrorMain.WIDTH/3, HorrorMain.HEIGHT/3, 20, 20, false);
-        physicsSprites.add(chest);
+        log = new Chest("log", new Texture("assets/sprites/log.png"),
+            HorrorMain.WIDTH/3, HorrorMain.HEIGHT/3, 60, 20, false);
+        physicsSprites.add(log);
+
+        log2 = new Chest("log2", new Texture("assets/sprites/log.png"),
+            HorrorMain.WIDTH/3+50, HorrorMain.HEIGHT/3-100, 60, 20, false);
+        physicsSprites.add(log2);
+
+        leftEye = new Eye(HorrorMain.WIDTH / 2 - 50, HorrorMain.HEIGHT / 2);
+        physicsSprites.add(leftEye);
+        rightEye = new Eye(HorrorMain.WIDTH / 2, HorrorMain.HEIGHT / 2);
+        physicsSprites.add(rightEye);
+        eyeSound = manager.get("sounds/gnid.ogg", Sound.class);
+        eyesTexture = new Texture("assets/eyes.jpg");
+        jumpScare = manager.get("sounds/eyeScare.wav", Sound.class);
 
         camera.viewportWidth = HorrorMain.WIDTH/4;
         camera.viewportHeight = HorrorMain.HEIGHT/4;
@@ -175,10 +202,10 @@ public class GameState extends State{
             clickFlashlight();
             flashlight_click.play();
         }
-        if(Gdx.input.isKeyPressed(Input.Keys.F)){   // F to equip flashlight
+        if(Gdx.input.isKeyJustPressed(Input.Keys.F)){   // F to equip flashlight
             player.setItem(0, 1);
         }
-        if(Gdx.input.isKeyPressed(Input.Keys.SPACE)){player.getBody().applyLinearImpulse(-1000,1000, player.getX(),player.getY(),true);}
+
     }
 
     @Override
@@ -193,7 +220,6 @@ public class GameState extends State{
         float speed = 2f; // how fast the shader ramps up/down
         tiredShaderIntensity += (target - tiredShaderIntensity) * dt * speed;
 
-
         //For getting cursor X and Y NOT according to camera
         // (otherwise it gets left behind when the player walks)
         cursorToWorldVec.set(Gdx.input.getX(), Gdx.input.getY(), 0);
@@ -206,7 +232,7 @@ public class GameState extends State{
         //ambientLight.setPosition(cursorPosition.x, cursorPosition.y);
 
         // Follow player but NOT instantly — this creates softness that allows shake to work
-        float lerp = 6f;  // increase for tighter following
+        float lerp = 0.3f;  // increase for tighter following
         cameraTarget.x += (player.getPosition().x - cameraTarget.x) * lerp * dt;
         cameraTarget.y += (player.getPosition().y - cameraTarget.y) * lerp * dt;
 
@@ -216,24 +242,32 @@ public class GameState extends State{
 
         for (Rectangle bound : bounds){     // Check X collision
                 if (player.collidesLeft(bound)) {  //Walking left into boundary
-                    player.getBody().setTransform(bound.x + bound.width + 1, player.getPosition().y, 0);
+                    player.getBody().setTransform(bound.x + bound.width + player.getWidth()/2, player.getPosition().y, 0);
                     player.setVelocity(0, player.getVelY());
                 } else if (player.collidesRight(bound)) { //Walking right into boundary
-                    player.getBody().setTransform(bound.x - player.getWidth() / 2 - 1, player.getPosition().y, 0);
+                    player.getBody().setTransform(bound.x - player.getWidth() / 2, player.getPosition().y, 0);
                     player.setVelocity(0, player.getVelY());
                 }
                 if (player.collidesUp(bound)) {    // Check Y collision   //walking Up into boundary
-                    player.getBody().setTransform(player.getPosition().x, bound.y - player.getHeight() / 2 - 1, 0);
+                    player.getBody().setTransform(player.getPosition().x, bound.y - player.getHeight() / 2, 0);
                     player.setVelocity(player.getVelX(), 0);
                 } else if (player.collidesDown(bound)) {    //Walking down into boundary
                     player.getBody().setTransform(player.getPosition().x, bound.y + bound.height + player.getHeight()/2, 0);
                     player.setVelocity(player.getVelX(), 0);
             }
-
+                shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+                shapeRenderer.setColor(Color.RED);
+                shapeRenderer.rect(bound.x, bound.y, bound.width, bound.height);
+                shapeRenderer.end();
         }
 
         ball.update();
-        chest.update();
+        log.update();
+        log2.update();
+        if(leftEye != null && rightEye != null) {
+            leftEye.update();
+            rightEye.update();
+        }
         flashlightUpdate();
 
 
@@ -245,6 +279,10 @@ public class GameState extends State{
         }else {camera.position.set(player.getPosition().x, player.getPosition().y, 0);}
 
         camera.update();
+
+        //THE HAUNTING EYES MIRAGE (still working on them)
+        eyesMirageUpdate();
+        //HOUSE
 
         entry(new HouseState(gsm, manager),150 + (HOUSE_WIDTH / 2), 560 ); // Enter house if at house door
 
@@ -273,7 +311,7 @@ public class GameState extends State{
             player.setDirection(cursorPosition.x <= player.getPosition().x);
 
                 flashlight.setPosition(player.getPosition().x, player.getPosition().y);
-                flashlight.setDirection(player.getAngleBetweenObj(player.getPosition(), cursorPosition));
+                flashlight.setDirection(player.getAngleBetweenObj(cursorPosition));
 
             } else {
                 light_hum.stop();
@@ -289,6 +327,7 @@ public class GameState extends State{
         // 1. DRAW WORLD INTO FBO (the framebufferer)
         // -------------------------------------------------------
         fbo.begin();
+        Gdx.gl.glClearColor(0,0,0,0);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         time += Gdx.graphics.getDeltaTime();
@@ -302,13 +341,14 @@ public class GameState extends State{
 
         // Draw world
         mapDrawer.render(sb);
-        mapDrawer2.render(sb);
         sb.draw(house, 144, 544, HOUSE_WIDTH, HOUSE_HEIGHT);
         if(!debugMode) {
-            player.render(sb);
-            ball.render(sb);
-            chest.render(sb);
+            for(PhysicsSprite sprite : physicsSprites) {
+                sprite.render(sb);
+            }
         }
+        mapDrawer2.render(sb);
+        eyesMirageRender(sb);
         sb.end();
         fbo.end();
 
@@ -325,14 +365,14 @@ public class GameState extends State{
                 (float)Gdx.graphics.getHeight() / 2f / Gdx.graphics.getHeight()
             );
 
-            shaderProgram.bind();
-            shaderProgram.setUniformf("u_tiredIntensity", tiredShaderIntensity/1.7f);
-            shaderProgram.setUniformf("center", center);
-            shaderProgram.setUniformf("u_time", time);
-            shaderProgram.setUniformf("u_resolution",
+            crtShaderProgram.bind();
+            crtShaderProgram.setUniformf("u_tiredIntensity", tiredShaderIntensity/1.7f);
+            crtShaderProgram.setUniformf("center", center);
+            crtShaderProgram.setUniformf("u_time", time);
+            crtShaderProgram.setUniformf("u_resolution",
                 Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
-            sb.setShader(shaderProgram);
+            sb.setShader(crtShaderProgram);
 
         } else {
             sb.setShader(null);
@@ -382,16 +422,13 @@ public class GameState extends State{
                 );
                 label.setFontScale(0.3f);
                 label.draw(sb, 1f);
+                s.render(sb);
             }
 
-            Label debugInfo = new Label("Press 2 and 7 to exit debugMode", textSkin);
+            Label debugInfo = new Label("Press '2' and '=' to exit debugMode", textSkin);
             debugInfo.setFontScale(0.2f);
             debugInfo.setPosition(camera.position.x - 157, camera.position.y + 70);
             debugInfo.draw(sb, 1f);
-
-            player.render(sb);
-            ball.render(sb);
-            chest.render(sb);
 
             sb.end();
 
@@ -408,7 +445,6 @@ public class GameState extends State{
                 float y = s.getBody().getPosition().y - s.getBodyHeight() / 2f;
                 float w = s.getBodyWidth();
                 float h = s.getBodyHeight();
-
                 shapeRenderer.rect(x, y, w, h);
             }
             shapeRenderer.setColor(Color.GREEN);
@@ -444,6 +480,44 @@ public class GameState extends State{
         bounds.add(new Rectangle(130 + (HOUSE_WIDTH / 2), 560, 8,16)); // House door
 
         bounds.add(new Rectangle(544, HorrorMain.HEIGHT - 64, 96, 32)); // EXIT (MUST be last)
+    }
+
+    public void eyesMirageUpdate(){
+        if(doJumpScares && player.tiredCount == 5 && player.isTired) {
+            if(flashOn && player.getAngleBetweenObj(cursorPosition) < player.getAngleBetweenObj(leftEye.getPosition())+45
+                && player.getAngleBetweenObj(cursorPosition) > player.getAngleBetweenObj(rightEye.getPosition())-45) {
+                flashlight.setColor(Color.WHITE);
+                leftEye.setOpacity(leftEye.getPosition().dst(player.getPosition()) / 100);
+                rightEye.setOpacity(leftEye.getPosition().dst(player.getPosition()) / 100);
+            }else {
+                flashlight.setColor(1, 1, 1, leftEye.getPosition().dst(player.getPosition()) / 1000);
+                leftEye.getBody().setTransform(cameraTarget.x, cameraTarget.y, 0);
+            }
+            eyeSound.play(0.1f);
+        }else {
+            flashlight.setColor(Color.WHITE);
+            eyeSound.stop();
+            leftEye.getBody().setTransform(player.getPosition().x - 1000, player.getPosition().y - 1000, 0);
+        }
+        rightEye.getBody().setTransform(leftEye.getPosition().x-40, leftEye.getPosition().y,0);
+
+    }
+    public void eyesMirageRender(SpriteBatch sb){
+        if(doJumpScares&& leftEye.getPosition().dst(player.getPosition()) < 30) {
+            sb.setShader(monochromeShaderProgram);
+            sb.setColor(1,1,1,0.5f);
+            sb.draw(eyesTexture, player.getPosition().x-HorrorMain.WIDTH/8, player.getPosition().y-HorrorMain.HEIGHT/8,
+                eyesTexture.getWidth()/2, eyesTexture.getHeight()/2);
+            sb.setColor(1,1,1,1);
+            if (!jumpScarePlayed) {
+                jumpScarePlayed = true;
+                jumpScare.play(1f);   // play ONCE
+            }
+
+        } else {
+            jumpScarePlayed = false;
+            //eyesTexture.dispose();// Reset when player leaves scare
+        }
     }
 
     @Override

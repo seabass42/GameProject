@@ -19,7 +19,7 @@ import static com.horrorgame.project.states.State.debugMode;
 public class Player extends PhysicsSprite {
 
     private Vector2 velocity = new Vector2();
-    private float speed = 20;
+    private float speed = 30;
     private boolean facingLeft = false;
     public boolean hasLight = true;
 
@@ -42,9 +42,10 @@ public class Player extends PhysicsSprite {
 
     private float stamina = 1f;             // Stamina level (0 to 1)
     private final float RUN_DEPLETION_TIME = 5f;    // seconds to fully deplete
-    private final float RECOVERY_TIME = 5f; // seconds to recover
+    private float RECOVERY_TIME = 5f; // seconds to recover
     public boolean isTired = false;
     private boolean canRun = true;
+    public int tiredCount = 0;
 
     private Rectangle hitboxUp;
     private Rectangle hitboxLeft;
@@ -89,9 +90,7 @@ public class Player extends PhysicsSprite {
         // Inventory key: 0 = flashlight, 1 = item1, 2 = item2, 3 = item3
     }
     //  Check if player is colliding with something
-    public boolean collidesLeft(Rectangle rect){
-        return hitboxLeft.overlaps(rect);
-    }
+    public boolean collidesLeft(Rectangle rect){return hitboxLeft.overlaps(rect);}
     public boolean collidesRight(Rectangle rect) { return hitboxRight.overlaps(rect); }
     public boolean collidesUp(Rectangle rect){ return hitboxUp.overlaps(rect); }
     public boolean collidesDown(Rectangle rect){ return hitboxDown.overlaps(rect); }
@@ -138,8 +137,8 @@ public class Player extends PhysicsSprite {
 
     public void setDirection(boolean facingLeft) { this.facingLeft = facingLeft; }
 
-    public float getAngleBetweenObj(Vector2 v1, Vector2 v2) {
-        return v2.cpy().sub(v1).angle();
+    public float getAngleBetweenObj(Vector2 v1) {
+        return v1.cpy().sub(getPosition()).angle();
     }
 
     public void update(float dt) {
@@ -154,13 +153,15 @@ public class Player extends PhysicsSprite {
             if (stamina <= 0f) {
                 stamina = 0f;
                 if (!isTired && !debugMode) {
-                    tired.play(0.04f);
+                    tired.play(0.07f);
                     out_of_breath.play(0.1f);
                     isTired = true;
+                    tiredCount++;
                 }
             }
         } else if (stamina < 1f) {
             // Recover stamina when not running
+            if(tiredCount == 5) {RECOVERY_TIME =20;}
             stamina += dt / RECOVERY_TIME;
             if (stamina >= 1f) {
                 stamina = 1f;
@@ -168,9 +169,13 @@ public class Player extends PhysicsSprite {
             }
         }
 
+        if(tiredCount >5){
+            tiredCount = 0;
+            RECOVERY_TIME = 5f;
+        }
         // Can run only if stamina > 0
         // Adjust speed
-        speed = canRun ? 40 : 20;
+        speed = canRun ? 50 : 30;
         STEP_DISTANCE = canRun ? 20 : 15;
         footsteps = canRun ? loadSounds("assets/sounds/player/LightDirtRun", 4)
             : loadSounds("assets/sounds/player/LightDirt", 4);
@@ -216,7 +221,7 @@ public class Player extends PhysicsSprite {
         hitboxDown.setPosition(body.getPosition().x-width/4, body.getPosition().y-height/2);
         // Apply collision pushback AFTER movement:
         body.setLinearVelocity(velocity.x, velocity.y);
-        super.update();
+        //super.update();
     }
 
     public void render(SpriteBatch batch) {
