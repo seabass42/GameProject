@@ -10,7 +10,6 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
@@ -93,7 +92,6 @@ public class GameState extends State{
     private Music ambience, lakeAmbience;
     private Rectangle lakeRange1 = new Rectangle(816, 0, 96, HorrorMain.HEIGHT);
     private Rectangle lakeRange2 = new Rectangle(912, 0, 368, HorrorMain.HEIGHT);
-    private boolean inLakeRange = false;
 
     //Test background and objects
     private Texture tileset;
@@ -105,6 +103,10 @@ public class GameState extends State{
     private Texture house;
     private final int HOUSE_HEIGHT = 105;
     private final int HOUSE_WIDTH = 116;
+    private final OrthographicCamera screenCam = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    private boolean houseLocked = false;
+
+    private RPGText introText, houseLockedText;
 
     //Player capabilities
 
@@ -177,9 +179,10 @@ public class GameState extends State{
 
         createBounds(bounds);
 
-        RPGText text1 = new RPGText("This is a test", textSkin);
-        text1.setPosition(HorrorMain.WIDTH/2,HorrorMain.HEIGHT/2);
-        stage.addActor(text1);
+        introText = new RPGText("There must be a way out.", textSkin);
+        houseLockedText = new RPGText("It is unreasonable to return.", textSkin);
+
+        stage.addActor(introText);
         ambience = Gdx.audio.newMusic(Gdx.files.internal("GameStateMusic/outsideambience.mp3"));
         lakeAmbience = Gdx.audio.newMusic(Gdx.files.internal("GameStateMusic/lakeambience.mp3"));
         lakeAmbience.setVolume(0.3f);
@@ -219,6 +222,7 @@ public class GameState extends State{
         float target = player.isTired ? 1f : 0f;
         float speed = 2f; // how fast the shader ramps up/down
         tiredShaderIntensity += (target - tiredShaderIntensity) * dt * speed;
+
 
         //For getting cursor X and Y NOT according to camera
         // (otherwise it gets left behind when the player walks)
@@ -469,17 +473,17 @@ public class GameState extends State{
     }
 
     private void createBounds(Array<Rectangle> bounds){
-        bounds.add(new Rectangle(0,0, HorrorMain.WIDTH, 112)); // bottom
+        bounds.add(new Rectangle(0,0, HorrorMain.WIDTH, 96)); // bottom
         bounds.add(new Rectangle(0,0, 96, HorrorMain.HEIGHT)); // left
-        bounds.add(new Rectangle(80, (HorrorMain.HEIGHT - 64), 448, 64)); // top left
-        bounds.add(new Rectangle(656, (HorrorMain.HEIGHT - 64) , 368, 64)); // top right
+        bounds.add(new Rectangle(80, (HorrorMain.HEIGHT - 80), 448, 64)); // top left
+        bounds.add(new Rectangle(656, (HorrorMain.HEIGHT - 80) , 368, 64)); // top right
         bounds.add(new Rectangle(848, 80, 128, 80)); // lower right corner
         bounds.add(new Rectangle(992, 160, 192, 224));  // under bridge
         bounds.add(new Rectangle(992, 464, 192, 208)); // above bridge
         bounds.add(new Rectangle(150, 560, HOUSE_WIDTH - 16, HOUSE_HEIGHT)); // House
         bounds.add(new Rectangle(130 + (HOUSE_WIDTH / 2), 560, 8,16)); // House door
 
-        bounds.add(new Rectangle(544, HorrorMain.HEIGHT - 64, 96, 32)); // EXIT (MUST be last)
+        bounds.add(new Rectangle(544, HorrorMain.HEIGHT - 80, 96, 32)); // EXIT (MUST be last)
     }
 
     public void eyesMirageUpdate(){
@@ -522,7 +526,8 @@ public class GameState extends State{
 
     @Override
     public void resize(int width, int height){
-
+        camera.viewportWidth = width;
+        camera.viewportHeight = height;
     }
     private void entry(State state, int x, int y){ // If rectangle is an entry point (16w x 16h), push requested state
         if (player.collidesUp(new Rectangle(x,y,8,16))){

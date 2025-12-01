@@ -3,6 +3,7 @@ package com.horrorgame.project.states;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -11,12 +12,14 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.horrorgame.project.HorrorMain;
@@ -37,6 +40,7 @@ public class MenuState extends State {
     private Label title;
     private Boolean playOnce = false;
     private final Sound hoverSelect;
+    private Music menuMusic;
 
     public MenuState(GameStateManager gsm, AssetManager manager){
         super(gsm); //Initialize background and ui skin
@@ -66,6 +70,10 @@ public class MenuState extends State {
         table.row();
         table.add(exitButton);
 
+        menuMusic = Gdx.audio.newMusic(Gdx.files.internal("Main Menu Claw Finger.mp3"));
+        menuMusic.play();
+        menuMusic.setVolume(0.4f);
+        menuMusic.setLooping(true);
     }
 
 
@@ -76,9 +84,13 @@ public class MenuState extends State {
 
     @Override
     protected void handleInput() {
-        onChange(playButton, () -> gsm.set(new LoadingState(gsm, manager)));// Buttons made functional
-
-        onChange(exitButton, () -> Gdx.app.exit());
+        playButton.addListener(new ClickListener(){
+            @Override
+            public void clicked(InputEvent event, float x, float y){
+                menuMusic.stop();
+                gsm.set(new LoadingState(gsm, manager));
+            }
+        });
 
         if(Gdx.input.isKeyPressed(Input.Keys.NUM_2) && Gdx.input.isKeyJustPressed(Input.Keys.EQUALS)){
             setDebugMode();
@@ -93,6 +105,8 @@ public class MenuState extends State {
         }else if(!buttonHover()){playOnce = false;}
         handleInput();
         stage.getViewport().update(HorrorMain.WIDTH, HorrorMain.HEIGHT, true);
+        onChange(creditsButton, () -> gsm.push(new CreditsState(gsm, manager)));
+        onChange(exitButton, () -> Gdx.app.exit());
 
     }
 

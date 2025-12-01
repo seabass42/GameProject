@@ -52,6 +52,7 @@ public class LoadingState extends State {
         manager.load("House/House.png", Texture.class);
         manager.load("House/amnesia_room1.jpeg", Texture.class);
         manager.load("House/amnesia_room2.png", Texture.class);
+        manager.load("sounds/gui/text_sound.mp3", Sound.class);
         manager.load("sounds/objectInteractions/blip3.wav", Sound.class);
         manager.load("sounds/gnid.ogg", Sound.class);
         manager.load("sounds/eyeScare.wav", Sound.class);

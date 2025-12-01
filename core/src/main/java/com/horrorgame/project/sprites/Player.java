@@ -19,7 +19,7 @@ import static com.horrorgame.project.states.State.debugMode;
 public class Player extends PhysicsSprite {
 
     private Vector2 velocity = new Vector2();
-    private float speed = 30;
+    private float speed = 60;
     private boolean facingLeft = false;
     public boolean hasLight = true;
 
@@ -84,10 +84,10 @@ public class Player extends PhysicsSprite {
         hitboxUp = new Rectangle(x+5,y+height/2,width-10,height/2);
         hitboxDown = new Rectangle(x+5,y-height/2,width-10,height/2);
 
-        inventory = new int[4];
+        inventory = new int[2];
         inventory[0] = 0;
 
-        // Inventory key: 0 = flashlight, 1 = item1, 2 = item2, 3 = item3
+        // Inventory key: 0 = flashlight, 1 = wire cutters
     }
     //  Check if player is colliding with something
     public boolean collidesLeft(Rectangle rect){return hitboxLeft.overlaps(rect);}
@@ -175,7 +175,7 @@ public class Player extends PhysicsSprite {
         }
         // Can run only if stamina > 0
         // Adjust speed
-        speed = canRun ? 50 : 30;
+        speed = canRun ? 100 : 60;
         STEP_DISTANCE = canRun ? 20 : 15;
         footsteps = canRun ? loadSounds("assets/sounds/player/LightDirtRun", 4)
             : loadSounds("assets/sounds/player/LightDirt", 4);
@@ -241,4 +241,8 @@ public class Player extends PhysicsSprite {
             getWidth(),
             getHeight());
     }
+    public void addToInventory(int index){
+        inventory[index] = 1;
+    }
+
 }
