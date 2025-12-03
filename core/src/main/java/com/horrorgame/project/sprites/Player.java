@@ -24,8 +24,6 @@ public class Player extends PhysicsSprite {
     private Direction direction = Direction.DOWN;
 
     private TextureAtlas atlas;
-    private Animation<TextureRegion> walkAnimation;
-    private Animation<TextureRegion> idleAnimation;
     private TextureRegion currentFrame;
 
     private Animation<TextureRegion> walkingRight, walkingLeft, idleUp,
@@ -37,7 +35,7 @@ public class Player extends PhysicsSprite {
     private Sound tired;
     private Sound out_of_breath;
     private float lastStepX, lastStepY;
-    private float STEP_DISTANCE = 15f;
+    private float STEP_DISTANCE = 30f;
     private final Random random = new Random();
 
     private boolean isWalking = false;
@@ -61,20 +59,13 @@ public class Player extends PhysicsSprite {
     public Player(String name, Texture texture, float x, float y, float width, float height) {
         super(name, texture, x, y, width, height, false);
 
-        setSize(width, height);
+        setSize(width*1.5f, height);
         setOriginCenter(); // makes rotation around the sprite center
 
         // Create matching Box2D body
         setBoxFixture(width, height);
         body.setType(BodyDef.BodyType.DynamicBody); // ignore collisions but still movable
-
-        // Load animations
-        atlas = new TextureAtlas(Gdx.files.internal("assets/sprites/idleSprites.atlas"));
-        idleAnimation = new Animation<>(0.1f, atlas.findRegions("idle"));
-        idleAnimation.setPlayMode(Animation.PlayMode.LOOP);
-
-        atlas = new TextureAtlas(Gdx.files.internal("assets/sprites/walkingSprites.atlas"));
-        walkAnimation = new Animation<>(0.05f, atlas.findRegions("walking"));
+        body.setFixedRotation(true);
 
         atlas = new TextureAtlas(Gdx.files.internal("assets/sprites/CharAnimations.atlas"));
         walkingRight = new Animation<>(0.2f, atlas.findRegions("walking_right"));
@@ -189,10 +180,9 @@ public class Player extends PhysicsSprite {
         // Can run only if stamina > 0
         // Adjust speed
         speed = canRun ? 100 : 60;
-        STEP_DISTANCE = canRun ? 20 : 15;
+        STEP_DISTANCE = canRun ? 30 : 60;
         footsteps = canRun ? loadSounds("assets/sounds/player/LightDirtRun", 4)
             : loadSounds("assets/sounds/player/LightDirt", 4);
-        walkAnimation.setFrameDuration(canRun ? 0.045f : 0.06f);
         //END OF STAMINA
         // Reset movement
         velocity.set(0, 0);

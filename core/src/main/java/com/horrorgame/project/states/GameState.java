@@ -29,6 +29,8 @@ import com.horrorgame.project.sprites.*;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 
 import java.util.ArrayList;
+import java.util.Random;
+
 import com.horrorgame.project.Tiles.MapData;
 import com.horrorgame.project.Tiles.MapDrawer;
 
@@ -63,14 +65,19 @@ public class GameState extends State{
 
     private ArrayList<PhysicsSprite> physicsSprites = new ArrayList<>();
     private static Ball ball;
-    private static Chest log;
-    private static Chest log2;
+    private static Log log;
+    private static Log log2;
     public static Player player;
     private static Eye leftEye;
     private static Eye rightEye;
     private static Texture eyesTexture;
     private Sound eyeSound, jumpScare, openHouseDoor;
     private final Vector2 cameraTarget = new Vector2();
+
+    //Trees
+    private Random random = new Random();
+    private static Tree[] tree = new Tree[15];
+
     //private SpriteBatch batch;
     public static OrthographicCamera camera = new OrthographicCamera();
 
@@ -101,6 +108,10 @@ public class GameState extends State{
     public static boolean houseLocked = false;
 
     private RPGText introText, houseLockedText;
+    //Player capabilities
+    //Log Bridge
+    private boolean logBridge = false;
+
 
     public GameState(GameStateManager gsm, AssetManager manager){
         super(gsm);
@@ -124,18 +135,18 @@ public class GameState extends State{
         house = manager.get("House/House.png", Texture.class);
         bunker = manager.get("Bunker/Bunker.png", Texture.class);
         player = new Player("player", new Texture("assets/sprites/idleSprites.png"),
-            HorrorMain.WIDTH/2,HorrorMain.HEIGHT/2,20,26.25f);
+            HorrorMain.WIDTH/2,HorrorMain.HEIGHT/2,15,30);
         physicsSprites.add(player);
 
         ball = new Ball("ball", new Texture("assets/sprites/ball.png"),
             HorrorMain.WIDTH/2, (HorrorMain.HEIGHT/2-100),10, false);
         physicsSprites.add(ball);
 
-        log = new Chest("log", new Texture("assets/sprites/log.png"),
+        log = new Log("log", new Texture("assets/sprites/log.png"),
             HorrorMain.WIDTH/3, HorrorMain.HEIGHT/3, 60, 20, false);
         physicsSprites.add(log);
 
-        log2 = new Chest("log2", new Texture("assets/sprites/log.png"),
+        log2 = new Log("log2", new Texture("assets/sprites/log.png"),
             HorrorMain.WIDTH/3+50, HorrorMain.HEIGHT/3-100, 60, 20, false);
         physicsSprites.add(log2);
 
@@ -143,6 +154,13 @@ public class GameState extends State{
         physicsSprites.add(leftEye);
         rightEye = new Eye(HorrorMain.WIDTH / 2, HorrorMain.HEIGHT / 2);
         physicsSprites.add(rightEye);
+
+        //TREES
+        for(int i = 0; i < tree.length; i++) {
+            tree[i] = new Tree("tree", HorrorMain.WIDTH / 2 - random.nextInt(600), HorrorMain.HEIGHT / 2 - random.nextInt(300));
+            physicsSprites.add(tree[i]);
+        }
+
         eyeSound = manager.get("sounds/gnid.ogg", Sound.class);
         eyesTexture = new Texture("assets/eyes.jpg");
         jumpScare = manager.get("sounds/eyeScare.wav", Sound.class);
@@ -179,6 +197,8 @@ public class GameState extends State{
         ambience = Gdx.audio.newMusic(Gdx.files.internal("GameStateMusic/outsideambience.mp3"));
         lakeAmbience = Gdx.audio.newMusic(Gdx.files.internal("GameStateMusic/lakeambience.mp3"));
         lakeAmbience.setVolume(0.3f);
+
+
     }
 
     @Override
@@ -296,6 +316,14 @@ public class GameState extends State{
         }
         else{
             lakeAmbience.pause();
+        }
+
+        if(player.getPosition().x > 1190 && !logBridge) {
+            player.getBody().setTransform(1190, player.getPosition().y, 0);
+        }
+        if(log.getPosition().x > 1220 && log.getPosition().y > 400){
+            System.out.println("Hello");
+            logBridge = true;
         }
     }
 
@@ -433,8 +461,8 @@ public class GameState extends State{
                     s.getBody().getPosition().y
                 );
                 label.setFontScale(0.3f);
-                label.draw(sb, 1f);
                 s.render(sb);
+                label.draw(sb, 1f);
             }
 
             Label debugInfo = new Label("Press '2' and '=' to exit debugMode", textSkin);

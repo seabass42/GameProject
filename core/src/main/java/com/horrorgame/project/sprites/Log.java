@@ -5,15 +5,13 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.Body;
-import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.physics.box2d.joints.RevoluteJoint;
 import com.badlogic.gdx.physics.box2d.joints.RevoluteJointDef;
 import com.horrorgame.project.states.GameState;
 
 import static com.horrorgame.project.states.GameState.player;
 
-public class Chest extends PhysicsSprite {
+public class Log extends PhysicsSprite {
 
     private RevoluteJoint grabJoint;
     private Sound grabSound;
@@ -28,7 +26,7 @@ public class Chest extends PhysicsSprite {
         new Vector2(-20,-20)
     };
 
-    public Chest(String name, Texture texture, float x, float y, float width, float height, boolean isStatic) {
+    public Log(String name, Texture texture, float x, float y, float width, float height, boolean isStatic) {
         super(name, texture, x, y,width, height, isStatic);
         setSize(width, height*3.4f);
         setBoxFixture(width, height); // Automatically use box shape
