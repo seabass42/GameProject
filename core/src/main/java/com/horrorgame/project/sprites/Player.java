@@ -10,6 +10,7 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
 import com.badlogic.gdx.utils.Array;
+import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.Random;
@@ -20,13 +21,15 @@ public class Player extends PhysicsSprite {
 
     private Vector2 velocity = new Vector2();
     private float speed = 60;
-    private boolean facingLeft = false;
-    public boolean hasLight = true;
+    private Direction direction = Direction.DOWN;
 
     private TextureAtlas atlas;
     private Animation<TextureRegion> walkAnimation;
     private Animation<TextureRegion> idleAnimation;
     private TextureRegion currentFrame;
+
+    private Animation<TextureRegion> walkingRight, walkingLeft, idleUp,
+        idleDown, idleLeft, idleRight, walkingUp, walkingDown;
 
     private float stateTime = 0f;
 
@@ -72,6 +75,16 @@ public class Player extends PhysicsSprite {
 
         atlas = new TextureAtlas(Gdx.files.internal("assets/sprites/walkingSprites.atlas"));
         walkAnimation = new Animation<>(0.05f, atlas.findRegions("walking"));
+
+        atlas = new TextureAtlas(Gdx.files.internal("assets/sprites/CharAnimations.atlas"));
+        walkingRight = new Animation<>(0.2f, atlas.findRegions("walking_right"));
+        walkingLeft = new Animation<>(0.2f, atlas.findRegions("walking_left"));
+        walkingDown = new Animation<>(0.2f, atlas.findRegions("walking_down"));
+        walkingUp = new Animation<>(0.2f, atlas.findRegions("walking_up"));
+        idleDown = new Animation<>(0.1f, atlas.findRegions("idle_down"));
+        idleUp = new Animation<>(0.1f, atlas.findRegions("idle_up"));
+        idleLeft = new Animation<>(0.1f, atlas.findRegions("idle_left"));
+        idleRight = new Animation<>(0.1f, atlas.findRegions("idle_right"));
 
         // Load footstep sounds
         footsteps = loadSounds("assets/sounds/player/LightDirt", 4);
@@ -135,7 +148,7 @@ public class Player extends PhysicsSprite {
         return velocity.y;
     }
 
-    public void setDirection(boolean facingLeft) { this.facingLeft = facingLeft; }
+    public void setDirection(Direction newDirection) { direction = newDirection; }
 
     public float getAngleBetweenObj(Vector2 v1) {
         return v1.cpy().sub(getPosition()).angle();
@@ -186,16 +199,16 @@ public class Player extends PhysicsSprite {
 
         // Determine movement direction
         if (allowDiagonals) {
-            if (Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP)) velocity.y = speed;
-            if (Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.DOWN)) velocity.y = -speed;
-            if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT)) { velocity.x = -speed; facingLeft = true; }
-            if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) { velocity.x = speed; facingLeft = false; }
+            if (Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP)) {velocity.y = speed;}
+            if (Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.DOWN)) {velocity.y = -speed; }
+            if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT)) { velocity.x = -speed;}
+            if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) { velocity.x = speed;}
         } else {
             // No diagonals
-            if (Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP)) {velocity.y = speed;}
-            else if (Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.DOWN)) {velocity.y = -speed;}
-            else if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT)) { velocity.x = -speed; facingLeft = true;}
-            else if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) { velocity.x = speed; facingLeft = false;}
+            if (Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP)) {velocity.y = speed; direction = Direction.UP;}
+            else if (Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.DOWN)) {velocity.y = -speed; direction = Direction.DOWN;}
+            else if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT)) { velocity.x = -speed; direction = Direction.LEFT;}
+            else if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) { velocity.x = speed; direction = Direction.RIGHT;}
         }
 
         //Walking
@@ -223,15 +236,30 @@ public class Player extends PhysicsSprite {
         body.setLinearVelocity(velocity.x, velocity.y);
         //super.update();
     }
+    public static enum Direction{
+        LEFT, RIGHT, DOWN, UP
+    }
 
     public void render(SpriteBatch batch) {
         // Choose animation frame
-        currentFrame = isWalking ? walkAnimation.getKeyFrame(stateTime, true)
-            : idleAnimation.getKeyFrame(stateTime, true);
-
-        // Flip sprite if needed
-        if (currentFrame.isFlipX() != facingLeft) {
-            currentFrame.flip(true, false);
+        // currentFrame = isWalking ? walkAnimation.getKeyFrame(stateTime, true)
+          //  : idleAnimation.getKeyFrame(stateTime, true);
+        if (getVelX() > 0){
+            currentFrame = walkingRight.getKeyFrame(stateTime, true);
+        }else if (getVelX() < 0){
+            currentFrame = walkingLeft.getKeyFrame(stateTime, true);
+        }else if (getVelY() > 0){
+            currentFrame = walkingUp.getKeyFrame(stateTime, true);
+        }else if (getVelY() < 0){
+            currentFrame = walkingDown.getKeyFrame(stateTime, true);
+        }else if (direction == Direction.LEFT){
+            currentFrame = idleLeft.getKeyFrame(stateTime, true);
+        }else if (direction == Direction.RIGHT){
+            currentFrame = idleRight.getKeyFrame(stateTime, true);
+        }else if (direction == Direction.UP){
+            currentFrame = idleUp.getKeyFrame(stateTime, true);
+        }else if (direction == Direction.DOWN){
+            currentFrame = idleDown.getKeyFrame(stateTime, true);
         }
 
         // Draw sprite at scaled size

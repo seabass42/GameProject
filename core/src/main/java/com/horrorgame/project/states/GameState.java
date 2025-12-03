@@ -51,7 +51,6 @@ public class GameState extends State{
     private boolean doJumpScares = true;
     private boolean jumpScarePlayed = false;
 
-
     //Body category bits
     private MapDrawer mapDrawer, mapDrawer2;
     private Stage stage;
@@ -62,7 +61,6 @@ public class GameState extends State{
     private Vector3 cursorToWorldVec = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
     private Vector2 cursorToPlayer = new Vector2();
 
-
     private ArrayList<PhysicsSprite> physicsSprites = new ArrayList<>();
     private static Ball ball;
     private static Chest log;
@@ -71,23 +69,18 @@ public class GameState extends State{
     private static Eye leftEye;
     private static Eye rightEye;
     private static Texture eyesTexture;
-    private Sound eyeSound;
-    private Sound jumpScare;
+    private Sound eyeSound, jumpScare, openHouseDoor;
     private final Vector2 cameraTarget = new Vector2();
-    private SpriteBatch batch;
+    //private SpriteBatch batch;
     public static OrthographicCamera camera = new OrthographicCamera();
 
-
-    // --LIGHTING--
     public static World world = new World(new Vector2(0,0), false);
     private RayHandler rayHandler = new RayHandler(world);
     private PointLight ambientLight;
 
-    //Flashlight Initiations
     private ConeLight flashlight;
     private Boolean flashOn = false;
-    private Sound flashlight_click;
-    private Sound light_hum;
+    private Sound flashlight_click, light_hum;
 
     private Music ambience, lakeAmbience;
     private Rectangle lakeRange1 = new Rectangle(816, 0, 96, HorrorMain.HEIGHT);
@@ -100,16 +93,14 @@ public class GameState extends State{
 
     //  Collision
     private Array<Rectangle> bounds = new Array<>();
-    private Texture house;
+    private Texture house, bunker;
     private final int HOUSE_HEIGHT = 105;
     private final int HOUSE_WIDTH = 116;
-    private final OrthographicCamera screenCam = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-    private boolean houseLocked = false;
+    private final int BUNKER_WIDTH = 160;
+    private final int BUNKER_HEIGHT = 120;
+    public static boolean houseLocked = false;
 
     private RPGText introText, houseLockedText;
-
-    //Player capabilities
-
 
     public GameState(GameStateManager gsm, AssetManager manager){
         super(gsm);
@@ -131,6 +122,7 @@ public class GameState extends State{
         light_hum = manager.get("sounds/objectInteractions/light-hum.mp3", Sound.class);
 
         house = manager.get("House/House.png", Texture.class);
+        bunker = manager.get("Bunker/Bunker.png", Texture.class);
         player = new Player("player", new Texture("assets/sprites/idleSprites.png"),
             HorrorMain.WIDTH/2,HorrorMain.HEIGHT/2,20,26.25f);
         physicsSprites.add(player);
@@ -154,6 +146,7 @@ public class GameState extends State{
         eyeSound = manager.get("sounds/gnid.ogg", Sound.class);
         eyesTexture = new Texture("assets/eyes.jpg");
         jumpScare = manager.get("sounds/eyeScare.wav", Sound.class);
+        openHouseDoor = manager.get("sounds/door_open.mp3", Sound.class);
 
         camera.viewportWidth = HorrorMain.WIDTH/4;
         camera.viewportHeight = HorrorMain.HEIGHT/4;
@@ -287,8 +280,12 @@ public class GameState extends State{
         //THE HAUNTING EYES MIRAGE (still working on them)
         eyesMirageUpdate();
         //HOUSE
+        if (!houseLocked) {
+            if (entry(new HouseState(gsm, manager, player), 134 + (HOUSE_WIDTH / 2), 560)){
+                openHouseDoor.play();
+            }
+        }
 
-        entry(new HouseState(gsm, manager),150 + (HOUSE_WIDTH / 2), 560 ); // Enter house if at house door
 
         if (player.collidesRight(lakeRange1)){
             lakeAmbience.setVolume(0.15f);
@@ -312,7 +309,17 @@ public class GameState extends State{
     //updates flashlight
     private void flashlightUpdate(){
         if(flashOn) {
-            player.setDirection(cursorPosition.x <= player.getPosition().x);
+            //player.setDirection(cursorPosition.x <= player.getPosition().x);
+
+            if (player.getAngleBetweenObj(cursorPosition) <= 45 || player.getAngleBetweenObj(cursorPosition) >= 315){
+                player.setDirection(Player.Direction.RIGHT);
+            }else if (player.getAngleBetweenObj(cursorPosition) <= 135){
+                player.setDirection(Player.Direction.UP);
+            }else if (player.getAngleBetweenObj(cursorPosition) <= 225){
+                player.setDirection(Player.Direction.LEFT);
+            }else if (player.getAngleBetweenObj(cursorPosition) <= 315){
+                player.setDirection(Player.Direction.DOWN);
+            }
 
                 flashlight.setPosition(player.getPosition().x, player.getPosition().y);
                 flashlight.setDirection(player.getAngleBetweenObj(cursorPosition));
@@ -346,6 +353,7 @@ public class GameState extends State{
         // Draw world
         mapDrawer.render(sb);
         sb.draw(house, 144, 544, HOUSE_WIDTH, HOUSE_HEIGHT);
+       // sb.draw(bunker, 544, 192, BUNKER_WIDTH, BUNKER_HEIGHT);
         if(!debugMode) {
             for(PhysicsSprite sprite : physicsSprites) {
                 sprite.render(sb);
@@ -482,6 +490,7 @@ public class GameState extends State{
         bounds.add(new Rectangle(992, 464, 192, 208)); // above bridge
         bounds.add(new Rectangle(150, 560, HOUSE_WIDTH - 16, HOUSE_HEIGHT)); // House
         bounds.add(new Rectangle(130 + (HOUSE_WIDTH / 2), 560, 8,16)); // House door
+        bounds.add(new Rectangle(1200, 0, 16, HorrorMain.HEIGHT)); // End bridge
 
         bounds.add(new Rectangle(544, HorrorMain.HEIGHT - 80, 96, 32)); // EXIT (MUST be last)
     }
@@ -529,12 +538,13 @@ public class GameState extends State{
         camera.viewportWidth = width;
         camera.viewportHeight = height;
     }
-    private void entry(State state, int x, int y){ // If rectangle is an entry point (16w x 16h), push requested state
+    private boolean entry(State state, int x, int y){ // If rectangle is an entry point (16w x 16h), push requested state
         if (player.collidesUp(new Rectangle(x,y,8,16))){
             ambience.pause();
             gsm.push(state);
-
+            return true;
         }
+        return false;
     }
     @Override
     public void dispose() { // Prevent memory leaks!

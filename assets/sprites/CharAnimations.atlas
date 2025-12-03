@@ -1,0 +1,46 @@
+CharAnimations.png
+size: 32, 768
+format: RGBA8888
+filter: Linear, Linear
+repeat: none
+pma: false
+walking_down 
+  bounds: 0, 0, 32, 48
+walking_down
+  bounds: 0, 48, 32, 48
+walking_down
+  bounds: 0, 96, 32, 48
+walking_down
+  bounds: 0, 144, 32, 48
+walking_left
+  bounds: 0, 192, 32, 48
+walking_left
+  bounds: 0, 240, 32, 48
+walking_left
+  bounds: 0, 288, 32, 48
+walking_left
+  bounds: 0, 336, 32, 48
+walking_right
+  bounds: 0, 384, 32, 48
+walking_right
+  bounds: 0, 432, 32, 48
+walking_right
+  bounds: 0, 480, 32, 48
+walking_right
+  bounds: 0, 528, 32, 48
+walking_up
+  bounds: 0, 576, 32, 48
+walking_up
+  bounds: 0, 624, 32, 48
+walking_up
+  bounds: 0, 672, 32, 48
+walking_up
+  bounds: 0, 720, 32, 48
+idle_down
+  bounds: 0, 0, 32, 48
+idle_left
+  bounds: 0, 192, 32, 48
+idle_right
+  bounds: 0, 384, 32, 48
+idle_up
+  bounds: 0, 576, 32, 48

@@ -21,8 +21,7 @@ public class LoadingState extends State {
     private Skin skin;
     private Sound vhsPlay;
     private Label label;
-
-    private boolean vhsPlayed = false;       // Play sound only once
+    private boolean vhsPlayed = false;
     private float timer = 0f;
 
     public LoadingState(GameStateManager gsm, AssetManager manager) {
@@ -46,8 +45,8 @@ public class LoadingState extends State {
             if(!manager.isLoaded("onlytheocean-silent-hill-sm.jpeg"))
                 manager.load("onlytheocean-silent-hill-sm.jpeg", Texture.class);
             // Add other assets (sounds, maps, etc.) here
-            manager.load("sounds/objectInteractions/flashlight_click.wav", Sound.class);
-            manager.load("House/House.png", Texture.class);
+        manager.load("sounds/objectInteractions/flashlight_click.wav", Sound.class);
+        manager.load("House/House.png", Texture.class);
         manager.load("sounds/objectInteractions/light-hum.mp3", Sound.class);
         manager.load("House/House.png", Texture.class);
         manager.load("House/amnesia_room1.jpeg", Texture.class);
@@ -56,6 +55,8 @@ public class LoadingState extends State {
         manager.load("sounds/objectInteractions/blip3.wav", Sound.class);
         manager.load("sounds/gnid.ogg", Sound.class);
         manager.load("sounds/eyeScare.wav", Sound.class);
+        manager.load("sounds/door_open.mp3", Sound.class);
+        manager.load("Bunker/Bunker.png", Texture.class);
     }
 
     @Override
@@ -79,7 +80,8 @@ public class LoadingState extends State {
 
         if(manager.update() && timer >= 1f) {
             manager.finishLoading();
-            gsm.set(new GameState(gsm, manager));
+           // gsm.set(new HouseState(gsm, manager, GameState.player)); // Straight to house for testing
+            gsm.set(new GameState(gsm,manager));
         }
 
         int percent = (int)(manager.getProgress() * 100);

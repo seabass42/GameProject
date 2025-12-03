@@ -5,7 +5,6 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -24,8 +23,6 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.horrorgame.project.HorrorMain;
 
-import java.util.concurrent.TimeUnit;
-
 
 public class MenuState extends State {
     private AssetManager manager = new AssetManager();
@@ -35,7 +32,6 @@ public class MenuState extends State {
     private Skin skin;
     private Table table;
     private TextButton playButton, exitButton, creditsButton;
-    private Rectangle textBox;
     private ShapeRenderer shapeRenderer;
     private Label title;
     private Boolean playOnce = false;
@@ -43,27 +39,38 @@ public class MenuState extends State {
     private Music menuMusic;
 
     public MenuState(GameStateManager gsm, AssetManager manager){
-        super(gsm); //Initialize background and ui skin
+        super(gsm);
         this.manager = manager;
 
         background = manager.get("onlytheocean-silent-hill-sm.jpeg", Texture.class);
         hoverSelect = manager.get("sounds/gui/hoverSelect.wav", Sound.class);
         skin = manager.get("vhsui/vhs-ui.json", Skin.class);
 
-        stage = new Stage(new ScreenViewport()); //Set up stage
+        stage = new Stage(new ScreenViewport());
         Gdx.input.setInputProcessor(stage);
 
-        table = new Table();    //Set up table onto stage
+        table = new Table();
         table.setPosition(300,300);
         stage.addActor(table);
         title = new Label(HorrorMain.TITLE, skin);
-        title.setPosition(HorrorMain.WIDTH, HorrorMain.HEIGHT, Align.center);
+        title.setPosition(HorrorMain.WIDTH / 8f, HorrorMain.HEIGHT - 55, Align.center);
         stage.addActor(title);
+       // stage.setDebugAll(true);
 
-        playButton = new TextButton("Play",skin);   //Add menu buttons
+        playButton = new TextButton("Play",skin);
         exitButton = new TextButton("Exit", skin);
         creditsButton = new TextButton("Credits", skin);
-        table.padTop(60);   //Improve spacing between buttons
+        playButton.addListener(new ClickListener(){
+            @Override
+            public void clicked(InputEvent event, float x, float y){
+                menuMusic.stop();
+                gsm.set(new LoadingState(gsm, manager));
+            }
+        });
+        onChange(creditsButton, () -> gsm.push(new CreditsState(gsm, manager)));
+        onChange(exitButton, () -> Gdx.app.exit());
+
+        table.padTop(60);
         table.add(playButton).padBottom(20);
         table.row();
         table.add(creditsButton).padBottom(20);
@@ -84,30 +91,28 @@ public class MenuState extends State {
 
     @Override
     protected void handleInput() {
-        playButton.addListener(new ClickListener(){
-            @Override
-            public void clicked(InputEvent event, float x, float y){
-                menuMusic.stop();
-                gsm.set(new LoadingState(gsm, manager));
-            }
-        });
 
         if(Gdx.input.isKeyPressed(Input.Keys.NUM_2) && Gdx.input.isKeyJustPressed(Input.Keys.EQUALS)){
             setDebugMode();
+        }
+
+        if(buttonHover() && !playOnce){
+            hoverSelect.play();
+            playOnce = true;
+        }else if(!buttonHover()){
+            playOnce = false;
+        }
+
+        if(debugMode) {
+            table.setDebug(true);
+        }else  {
+            table.setDebug(false);
         }
     }
 
     @Override
     public void update(float dt) {
-        if(buttonHover() && !playOnce){
-            hoverSelect.play();
-            playOnce = true;
-        }else if(!buttonHover()){playOnce = false;}
         handleInput();
-        stage.getViewport().update(HorrorMain.WIDTH, HorrorMain.HEIGHT, true);
-        onChange(creditsButton, () -> gsm.push(new CreditsState(gsm, manager)));
-        onChange(exitButton, () -> Gdx.app.exit());
-
     }
 
     @Override
@@ -119,19 +124,15 @@ public class MenuState extends State {
         stage.act(Gdx.graphics.getDeltaTime());
         stage.draw();
 
-        if(debugMode) {
-            table.setDebug(true);
-        }else  {
-            table.setDebug(false);
-        }
     }
 
     private Boolean buttonHover(){
-
-        if(playButton.isOver() || exitButton.isOver() || creditsButton.isOver())
+        if (playButton.isOver() || exitButton.isOver() || creditsButton.isOver()){
             return true;
-        else
+        } else {
             return false;
+        }
+
     }
 
     @Override
@@ -141,7 +142,7 @@ public class MenuState extends State {
 
     @Override
     public void resize(int width, int height) {
-
+        stage.getViewport().update(HorrorMain.WIDTH, HorrorMain.HEIGHT, true);
     }
 
     public static void onChange(Actor actor, Runnable runnable){ // Method for button behavior

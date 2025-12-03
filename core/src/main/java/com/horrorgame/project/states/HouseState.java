@@ -11,16 +11,15 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.scenes.scene2d.*;
 import com.badlogic.gdx.scenes.scene2d.ui.Button;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.horrorgame.project.HorrorMain;
 import com.horrorgame.project.Text.RPGText;
@@ -35,6 +34,7 @@ public class HouseState extends State{
     private Music room1Music, room2Music;
 
     private Button proceedToRoom2, collectItem;
+    private Label doorHoverPrompt;
 
     private RoomState state;
     private Skin skin;
@@ -44,6 +44,7 @@ public class HouseState extends State{
     private PointLight cursorView;
     private Vector3 mouse;
     private Player player;
+    private boolean doorPromptHover = false;
 
     RPGText warningText, itemCollectedText, itemHint;
 
@@ -79,7 +80,7 @@ public class HouseState extends State{
             }
         });
         collectItem = new Button(invis);
-        collectItem.setBounds(800, 300, 40, 250);
+        collectItem.setBounds(500, 300, 40, 250);
         collectItem.addListener(new ClickListener(){
             @Override
             public void clicked(InputEvent event, float x, float y){
@@ -94,7 +95,9 @@ public class HouseState extends State{
         //stage.setDebugAll(true);
         stage.addActor(proceedToRoom2);
         stage.addActor(collectItem);
+        doorHoverPrompt = new Label("Enter?", skin);
         collectItem.setVisible(false);
+
 
         state = RoomState.ROOM1;
 
@@ -142,6 +145,12 @@ public class HouseState extends State{
         if (collectItem.isOver()){
             stage.addActor(itemHint);
         }
+        doorHoverPrompt.setPosition(mouse.x, mouse.y);
+        if (proceedToRoom2.isOver()){
+            stage.addActor(doorHoverPrompt);
+        } else {
+            doorHoverPrompt.remove();
+        }
 
     }
 
@@ -166,8 +175,10 @@ public class HouseState extends State{
                 room1Music.pause();
                 room2Music.play();
                 collectItem.setVisible(true);
+                collectItem.setDebug(true);
                 proceedToRoom2.setVisible(false);
                 warningText.removeEarly();
+                GameState.houseLocked = true;
                 break;
         }
 
@@ -202,6 +213,5 @@ public class HouseState extends State{
         room2Music.dispose();
         rayHandler.dispose();
         world.dispose();
-
     }
 }
