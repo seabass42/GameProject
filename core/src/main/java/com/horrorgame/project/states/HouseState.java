@@ -175,7 +175,6 @@ public class HouseState extends State{
                 room1Music.pause();
                 room2Music.play();
                 collectItem.setVisible(true);
-                collectItem.setDebug(true);
                 proceedToRoom2.setVisible(false);
                 warningText.removeEarly();
                 GameState.houseLocked = true;
