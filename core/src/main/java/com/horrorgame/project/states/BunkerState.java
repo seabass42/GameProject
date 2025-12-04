@@ -5,6 +5,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -31,6 +32,9 @@ public class BunkerState extends State {
     private Music bunkerAmbience, waterDrip;
     private Sound keyCollected, doorOpenSound;
     private Player player;
+    private Texture houseKey;
+    private boolean keyIsGone = false;
+    private ClickListener addLockedText;
 
     public BunkerState(GameStateManager gsm, AssetManager manager, Player player){
         super(gsm);
@@ -66,20 +70,37 @@ public class BunkerState extends State {
         });
 
         collectKey = new Button(invis);
-        collectKey.setBounds(400, 400, 16,16);
+        collectKey.setBounds(800, 370, 40,40);
         collectKey.addListener(new ClickListener(){
             @Override
             public void clicked(InputEvent event, float x, float y){
                 keyCollected.play();
                 player.addToInventory(3);
                 stage.addActor(keyFoundText);
+                houseKey.dispose();
+                collectKey.remove();
+                keyIsGone = true;
             }
         });
         collectKey.setVisible(false);
         stage.addActor(room2Entrance);
         stage.addActor(collectKey);
+        stage.addActor(bunkerIntroText);
 
-        stage.setDebugAll(true);
+        addLockedText = new ClickListener(){
+            @Override
+            public void clicked(InputEvent event, float x, float y){
+                bunkerIntroText.removeEarly();
+                stage.addActor(lockedText);
+            }
+        };
+
+        lockedDoor1 = new Button(invis);
+        lockedDoor1.setBounds(160, 0, 150, 700);
+        lockedDoor1.addListener(addLockedText);
+        stage.addActor(lockedDoor1);
+
+        //stage.setDebugAll(true);
 
         bunkerAmbience = Gdx.audio.newMusic(Gdx.files.internal("Bunker/BunkerAmbience.mp3"));
         bunkerAmbience.setVolume(0.2f);
@@ -91,6 +112,8 @@ public class BunkerState extends State {
         doorOpenSound = manager.get("Bunker/BunkerDoor(sh2).mp3", Sound.class);
 
         currentRoom = RoomState.ROOM1;
+
+        houseKey = manager.get("Bunker/HouseKey.png", Texture.class);
     }
     private enum RoomState {
         ROOM1, ROOM2
@@ -118,6 +141,9 @@ public class BunkerState extends State {
 
     @Override
     public void render(SpriteBatch sb) {
+        Gdx.gl.glClearColor(0, 0, 0, 1);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
         sb.begin();
         sb.setProjectionMatrix(camera.combined);
 
@@ -129,11 +155,19 @@ public class BunkerState extends State {
 
                 break;
             case ROOM2:
+                bunkerIntroText.removeEarly();
+                lockedText.removeEarly();
+                lockedDoor1.setVisible(false);
                 sb.draw(room2, 0, 0, fitViewport.getScreenWidth(), fitViewport.getScreenHeight());
                 room2Entrance.setVisible(false);
                 collectKey.setVisible(true);
                 bunkerAmbience.setVolume(0.07f);
                 waterDrip.setVolume(0.008f);
+                if (!keyIsGone) {
+                    sb.draw(houseKey, collectKey.getX(), collectKey.getY(), collectKey.getWidth(), collectKey.getHeight());
+                }
+                stage.draw();
+
                 break;
         }
         sb.end();
