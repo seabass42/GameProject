@@ -54,7 +54,7 @@ public class GameState extends State{
     private boolean jumpScarePlayed = false;
 
     //Body category bits
-    private MapDrawer mapDrawer, mapDrawer2;
+    private MapDrawer mapDrawer, mapDrawer2, finalMapDrawer;
     private Stage stage;
     private Skin textSkin;
 
@@ -106,8 +106,10 @@ public class GameState extends State{
     private final int BUNKER_WIDTH = 160;
     private final int BUNKER_HEIGHT = 120;
     public static boolean houseLocked = false;
+    private boolean exitOpen = false;
 
-    private RPGText introText, houseLockedText;
+    private RPGText introText, houseLockedText, exitFenceText;
+    private Rectangle fenceExit;
     //Player capabilities
     //Log Bridge
     private boolean logBridge = false;
@@ -118,11 +120,12 @@ public class GameState extends State{
         this.manager = manager;
         mapDrawer = new MapDrawer(MapData.MainMap);
         mapDrawer2 = new MapDrawer(MapData.MainMapLayer2);
+        finalMapDrawer = new MapDrawer(MapData.ExitOpenMap);
+
         fbo = new FrameBuffer(Pixmap.Format.RGBA8888, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
         Texture tex = fbo.getColorBufferTexture();
         tex.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
         tex.setWrap(Texture.TextureWrap.ClampToEdge, Texture.TextureWrap.ClampToEdge);
-
 
         //Shaders
         crtShaderProgram.pedantic = false;
@@ -189,10 +192,12 @@ public class GameState extends State{
         tileSize = 16;
         tiles = TextureRegion.split(tileset, tileSize, tileSize);
 
+        fenceExit = new Rectangle(544, HorrorMain.HEIGHT - 80, 96, 32);
         createBounds(bounds);
 
         introText = new RPGText("There must be a way out.", textSkin);
         houseLockedText = new RPGText("It is unreasonable to return.", textSkin);
+        exitFenceText = new RPGText("Maybe with wire cutters, escape is possible", textSkin);
 
         stage.addActor(introText);
         ambience = Gdx.audio.newMusic(Gdx.files.internal("GameStateMusic/outsideambience.mp3"));
@@ -221,6 +226,11 @@ public class GameState extends State{
         }
         if(Gdx.input.isKeyJustPressed(Input.Keys.F)){   // F to equip flashlight
             player.setItem(0, 1);
+        }
+        if (player.canCutFence() && player.collidesUp(fenceExit) && Gdx.input.isKeyJustPressed(Input.Keys.F)){ // End the game!!
+            exitFenceText.removeEarly();
+            exitOpen = true;
+            bounds.removeIndex(bounds.size - 1);
         }
 
     }
@@ -324,6 +334,10 @@ public class GameState extends State{
             System.out.println("Hello");
             logBridge = true;
         }
+
+        if (!exitOpen && player.collidesUp(fenceExit)){
+            stage.addActor(exitFenceText);
+        }
     }
 
     //METHODS FOR FLASHLIGHT
@@ -386,7 +400,11 @@ public class GameState extends State{
                 sprite.render(sb);
             }
         }
-        mapDrawer2.render(sb);
+        if (!exitOpen) {
+            mapDrawer2.render(sb);
+        } else {
+            finalMapDrawer.render(sb);
+        }
         eyesMirageRender(sb);
         sb.end();
         fbo.end();
@@ -468,7 +486,6 @@ public class GameState extends State{
             debugInfo.setFontScale(0.2f);
             debugInfo.setPosition(camera.position.x - 157, camera.position.y + 70);
             debugInfo.draw(sb, 1f);
-
             sb.end();
 
             // ---- DRAW PHYSICS OUTLINES ----
@@ -521,7 +538,7 @@ public class GameState extends State{
         bounds.add(new Rectangle(1200, 0, 16, HorrorMain.HEIGHT)); // End bridge
         bounds.add(new Rectangle(568, 228, BUNKER_WIDTH - 48, BUNKER_HEIGHT/2f)); // Bunker
 
-        bounds.add(new Rectangle(544, HorrorMain.HEIGHT - 80, 96, 32)); // EXIT (MUST be last)
+        bounds.add(fenceExit); // EXIT (MUST be last)
     }
 
     public void eyesMirageUpdate(){

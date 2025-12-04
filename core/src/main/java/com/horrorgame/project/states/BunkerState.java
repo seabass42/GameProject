@@ -99,6 +99,10 @@ public class BunkerState extends State {
         lockedDoor1.setBounds(160, 0, 150, 700);
         lockedDoor1.addListener(addLockedText);
         stage.addActor(lockedDoor1);
+        lockedDoor2 = new Button(invis);
+        lockedDoor2.setBounds(500, 225, 40, 340);
+        lockedDoor2.addListener(addLockedText);
+        stage.addActor(lockedDoor2);
 
         //stage.setDebugAll(true);
 
@@ -152,12 +156,12 @@ public class BunkerState extends State {
                 sb.draw(room1, 0, 0, fitViewport.getScreenWidth(), fitViewport.getScreenHeight());
                 bunkerAmbience.play();
                 waterDrip.play();
-
                 break;
             case ROOM2:
                 bunkerIntroText.removeEarly();
                 lockedText.removeEarly();
                 lockedDoor1.setVisible(false);
+                lockedDoor2.setVisible(false);
                 sb.draw(room2, 0, 0, fitViewport.getScreenWidth(), fitViewport.getScreenHeight());
                 room2Entrance.setVisible(false);
                 collectKey.setVisible(true);

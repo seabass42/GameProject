@@ -262,5 +262,11 @@ public class Player extends PhysicsSprite {
     public void addToInventory(int index){
         inventory[index] = 1;
     }
+    public boolean canCutFence(){
+        if (inventory[1] == 1){
+            return true;
+        }
+        return false;
+    }
 
 }

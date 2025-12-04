@@ -38,9 +38,9 @@ public class MapData {
     }
 
    private static File gameStateMap = new File("Maps/MainMap.json");
+    private static File finalMap = new File("Maps/FinalMap.json");
    public static int[][] MainMap = prepareMap(gameStateMap, 0);
    public static int[][] MainMapLayer2 = prepareMap(gameStateMap, 1);
-
-
+   public static int[][] ExitOpenMap = prepareMap(finalMap, 1);
 
 }
