@@ -65,7 +65,6 @@ public class GameState extends State{
     private Vector2 cursorToPlayer = new Vector2();
 
     private ArrayList<PhysicsSprite> physicsSprites = new ArrayList<>();
-    private static Ball ball;
     private static Log log, sign;
     public static Player player;
     private static Eye leftEye, rightEye;
@@ -114,6 +113,7 @@ public class GameState extends State{
     private final int BUNKER_WIDTH = 160;
     private final int BUNKER_HEIGHT = 120;
     public static boolean houseLocked = true;
+    public static boolean bunkerLocked = true;
     private boolean exitOpen = false;
 
     private RPGText introText, houseLockedText, exitFenceText, houseNeedsKeyText;
@@ -156,10 +156,6 @@ public class GameState extends State{
         player = new Player("player", new Texture("assets/sprites/idleSprites.png"),
             HorrorMain.WIDTH/2,HorrorMain.HEIGHT/2,15,30);
         physicsSprites.add(player);
-
-        ball = new Ball("ball", new Texture("assets/sprites/ball.png"),
-            HorrorMain.WIDTH/2, (HorrorMain.HEIGHT/2-100),6, false);
-        physicsSprites.add(ball);
 
         sign = new Log("sign", new Texture("assets/sprites/funSign.png"),
         HorrorMain.WIDTH/3-200, HorrorMain.HEIGHT/3-150, 40,14, true);
@@ -259,9 +255,6 @@ public class GameState extends State{
             clickFlashlight();
             flashlight_click.play();
         }
-        if(Gdx.input.isKeyJustPressed(Input.Keys.F)){   // F to equip flashlight
-            player.setItem(0, 1);
-        }
         if (player.canCutFence() && player.collidesUp(fenceExit) && Gdx.input.isKeyJustPressed(Input.Keys.F)){ // End the game!!
             exitFenceText.removeEarly();
             exitOpen = true;
@@ -320,8 +313,6 @@ public class GameState extends State{
             }
 
         }
-
-        ball.update();
         if(log!=null) log.update();
         for(Tree tree : trees){
             tree.update();
@@ -348,7 +339,10 @@ public class GameState extends State{
         //THE HAUNTING EYES MIRAGE (still working on them)
         eyesMirageUpdate();
         //HOUSE
-        entry(BunkerState.class,600, 228, 48, 32);
+        if (!bunkerLocked) {
+            entry(BunkerState.class, 600, 228, 48, 32);
+
+        }
         if (!houseLocked) {
             if (entry(HouseState.class, 134 + (HOUSE_WIDTH / 2), 560, 8, 16)){
                 openHouseDoor.play();
@@ -392,6 +386,7 @@ public class GameState extends State{
                 player.setItem(1, 1);
                 hint.setText("");
                 crowbar = null;
+                bunkerLocked = false;
             }
         }
 
@@ -666,7 +661,7 @@ public class GameState extends State{
         if(player.getPosition().dst(sign.getPosition()) < 45f){
             pupil.setSize(100,100);
             tiredShaderIntensity = player.getPosition().dst(sign.getPosition());
-            pupil.setPosition(cursorPosition.x-50, cursorPosition.y-50);
+            pupil.setPosition(cursorPosition.x-40, cursorPosition.y-50);
             if(!gaveHintSign){
                 stage.addActor(new RPGText("Deep breaths...", textSkin));
                 gaveHintSign = true;
