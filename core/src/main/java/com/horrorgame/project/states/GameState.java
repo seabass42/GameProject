@@ -129,6 +129,8 @@ public class GameState extends State{
     private boolean logBridge = false;
     private Texture waterlog;
     int seed = 0;
+    private ArrayList<Eye> eyes = new ArrayList<>();
+    boolean endingTime = false;
 
     public GameState(GameStateManager gsm, AssetManager manager){
         super(gsm);
@@ -178,8 +180,8 @@ public class GameState extends State{
         }
         trees.sort((a, b) -> Float.compare(b.getPosition().y, a.getPosition().y));
 
-        for(int i = 0; i < 14; i++) {   //Top Trees
-            trees2.add(new Tree("tree" + i, HorrorMain.WIDTH/2+250 - random.nextInt(600), HorrorMain.HEIGHT / 2+250 - random.nextInt(70)));
+        for(int i = 0; i < 9; i++) {   //Top Trees
+            trees2.add(new Tree("tree" + i, HorrorMain.WIDTH/2+250 - random.nextInt(605), HorrorMain.HEIGHT / 2+250 - random.nextInt(70)));
         }
         trees2.sort((a, b) -> Float.compare(b.getPosition().y, a.getPosition().y));
 
@@ -346,9 +348,24 @@ public class GameState extends State{
 
         //THE HAUNTING EYES MIRAGE (still working on them)
         eyesMirageUpdate();
+
+        for(Eye eye : eyes){
+            eye.update();
+        }
+        if(player.checkInventory(3)==1){
+            if(endingTime) {
+                for(int i = 0; i < 10; i++){
+                    eyes.add(new Eye(player.getPosition().x - random.nextInt(50), player.getPosition().y+600 - random.nextInt(50)));
+                    physicsSprites.add(eyes.get(i));
+                    endingTime = false;
+                }
+            }
+        }
+
         //HOUSE
         if (!bunkerLocked) {
             entry(BunkerState.class, 600, 228, 48, 32);
+
         }
         if (!houseLocked) {
             if (entry(HouseState.class, 134 + (HOUSE_WIDTH / 2), 560, 8, 16)){
@@ -502,7 +519,6 @@ public class GameState extends State{
         if(crowbar!=null) sb.draw(crowbar, 1150, 400, crowbar.getWidth()/12, crowbar.getHeight()/12);
         hint.draw(sb, 1f);
         pupil.draw(sb);
-
         sb.end();
         fbo.end();
 
@@ -556,7 +572,6 @@ public class GameState extends State{
             tex.getWidth(), tex.getHeight(),
             false, true
         );
-
 
         sb.end();
 
