@@ -117,7 +117,8 @@ public class GameState extends State{
     private boolean exitOpen = false;
 
     private RPGText introText, houseLockedText, exitFenceText, houseNeedsKeyText;
-    private Rectangle fenceExit, houseDoor;
+    private Rectangle fenceExit, houseDoor, initiateEnding;
+    private Texture demoEndingScene;
     Label hint;
     private boolean gaveHint = false;
     private boolean gaveHintSign = false;
@@ -135,6 +136,7 @@ public class GameState extends State{
         mapDrawer = new MapDrawer(MapData.MainMap);
         mapDrawer2 = new MapDrawer(MapData.MainMapLayer2);
         finalMapDrawer = new MapDrawer(MapData.ExitOpenMap);
+
 
         fbo = new FrameBuffer(Pixmap.Format.RGBA8888, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
         Texture tex = fbo.getColorBufferTexture();
@@ -210,8 +212,9 @@ public class GameState extends State{
         tileSize = 16;
         tiles = TextureRegion.split(tileset, tileSize, tileSize);
 
-        fenceExit = new Rectangle(544, HorrorMain.HEIGHT - 80, 96, 32);
-        houseDoor = new Rectangle(146 + (HOUSE_WIDTH / 2), 560, 8,16);
+        fenceExit = new Rectangle(544, HorrorMain.HEIGHT - 80, 118, 32);
+        houseDoor = new Rectangle(136 + (HOUSE_WIDTH / 2), 560, 16,16);
+        initiateEnding = new Rectangle(560, HorrorMain.HEIGHT - 32, 112, 48);
         createBounds(bounds);
 
         introText = new RPGText("There must be a way out.", textSkin);
@@ -227,6 +230,11 @@ public class GameState extends State{
         hint = new Label("", textSkin);
         hint.setFontScale(0.2f);
 
+        demoEndingScene = manager.get("EndingJumpscare.png", Texture.class);
+
+        //Test Ending
+        //exitOpen = true;
+        //bounds.removeIndex(bounds.size - 1);
     }
 
     @Override
@@ -341,7 +349,6 @@ public class GameState extends State{
         //HOUSE
         if (!bunkerLocked) {
             entry(BunkerState.class, 600, 228, 48, 32);
-
         }
         if (!houseLocked) {
             if (entry(HouseState.class, 134 + (HOUSE_WIDTH / 2), 560, 8, 16)){
@@ -395,6 +402,9 @@ public class GameState extends State{
         }
         if (player.checkInventory(3) == 1){
             houseLocked = false;
+        }
+        if (exitOpen && player.collidesUp(initiateEnding)){
+            Gdx.app.exit();
         }
     }
 
@@ -492,6 +502,7 @@ public class GameState extends State{
         if(crowbar!=null) sb.draw(crowbar, 1150, 400, crowbar.getWidth()/12, crowbar.getHeight()/12);
         hint.draw(sb, 1f);
         pupil.draw(sb);
+
         sb.end();
         fbo.end();
 
@@ -545,6 +556,7 @@ public class GameState extends State{
             tex.getWidth(), tex.getHeight(),
             false, true
         );
+
 
         sb.end();
 

@@ -62,6 +62,7 @@ public class LoadingState extends State {
         manager.load("Bunker/BunkerDoor(sh2).mp3", Sound.class);
         manager.load("Bunker/KeyCollected.mp3", Sound.class);
         manager.load("Bunker/HouseKey.png", Texture.class);
+        manager.load("EndingJumpscare.png", Texture.class);
 
     }
 
