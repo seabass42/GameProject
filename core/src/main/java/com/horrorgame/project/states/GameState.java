@@ -299,10 +299,11 @@ public class GameState extends State{
         eyesMirageUpdate();
         //HOUSE
         if (!houseLocked) {
-            if (entry(new HouseState(gsm, manager, player), 134 + (HOUSE_WIDTH / 2), 560)){
+            if (entry(new HouseState(gsm, manager, player), 134 + (HOUSE_WIDTH / 2), 560, 8, 16)){
                 openHouseDoor.play();
             }
         }
+        entry(new BunkerState(gsm, manager, player),600, 228, 48, 32);
 
 
         if (player.collidesRight(lakeRange1)){
@@ -475,6 +476,7 @@ public class GameState extends State{
 
             shapeRenderer.setProjectionMatrix(camera.combined);
             shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+            shapeRenderer.rect(600, 228, 48, 32);
 
             shapeRenderer.setColor(Color.RED); // Outline color
 
@@ -565,8 +567,8 @@ public class GameState extends State{
         camera.viewportWidth = width;
         camera.viewportHeight = height;
     }
-    private boolean entry(State state, int x, int y){ // If rectangle is an entry point (16w x 16h), push requested state
-        if (player.collidesUp(new Rectangle(x,y,8,16))){
+    private boolean entry(State state, int x, int y, int width, int height){ // If rectangle is an entry point (16w x 16h), push requested state
+        if (player.collidesUp(new Rectangle(x,y, width, height))){
             ambience.pause();
             gsm.push(state);
             return true;

@@ -108,7 +108,7 @@ public class HouseState extends State{
 
         cursorView = new PointLight(rayHandler, 600, Color.GRAY, 500, Gdx.input.getX(), Gdx.input.getY());
 
-        warningText = new RPGText("Something is wrong here. Do not linger.", skin);
+        warningText = new RPGText("Something is wrong here. I mustn't stray", skin);
         itemCollectedText = new RPGText("Wire cutters found.", skin);
         itemHint = new RPGText("There seems to be an item behind this side of the painting.", skin);
 
@@ -124,20 +124,6 @@ public class HouseState extends State{
 
     @Override
     protected void handleInput() {
-
-    }
-
-    @Override
-    public void update(float dt) {
-        camera.update();
-        mouse = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
-        camera.unproject(mouse);
-        cursorView.setPosition(mouse.x, mouse.y);
-        room1Music.play();
-        room1Music.setLooping(true);
-        stage.addActor(warningText);
-
-
         if (Gdx.input.isKeyPressed(Input.Keys.ESCAPE)){
             room1Music.stop();
             gsm.pop();
@@ -151,7 +137,18 @@ public class HouseState extends State{
         } else {
             doorHoverPrompt.remove();
         }
+    }
 
+    @Override
+    public void update(float dt) {
+        camera.update();
+        mouse = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+        camera.unproject(mouse);
+        cursorView.setPosition(mouse.x, mouse.y);
+        room1Music.play();
+        room1Music.setLooping(true);
+        stage.addActor(warningText);
+        handleInput();
     }
 
     @Override
