@@ -80,6 +80,7 @@ public class BunkerState extends State {
                 houseKey.dispose();
                 collectKey.remove();
                 keyIsGone = true;
+                player.addToInventory(3);
             }
         });
         collectKey.setVisible(false);

@@ -113,11 +113,11 @@ public class GameState extends State{
     private final int HOUSE_WIDTH = 116;
     private final int BUNKER_WIDTH = 160;
     private final int BUNKER_HEIGHT = 120;
-    public static boolean houseLocked = false;
+    public static boolean houseLocked = true;
     private boolean exitOpen = false;
 
-    private RPGText introText, houseLockedText, exitFenceText;
-    private Rectangle fenceExit;
+    private RPGText introText, houseLockedText, exitFenceText, houseNeedsKeyText;
+    private Rectangle fenceExit, houseDoor;
     Label hint;
     private boolean gaveHint = false;
     private boolean gaveHintSign = false;
@@ -215,11 +215,13 @@ public class GameState extends State{
         tiles = TextureRegion.split(tileset, tileSize, tileSize);
 
         fenceExit = new Rectangle(544, HorrorMain.HEIGHT - 80, 96, 32);
+        houseDoor = new Rectangle(146 + (HOUSE_WIDTH / 2), 560, 8,16);
         createBounds(bounds);
 
         introText = new RPGText("There must be a way out.", textSkin);
         houseLockedText = new RPGText("It is unreasonable to return.", textSkin);
         exitFenceText = new RPGText("Maybe with wire cutters, escape is possible", textSkin);
+        houseNeedsKeyText = new RPGText("Need a key to get in.", textSkin);
 
         stage.addActor(introText);
         ambience = Gdx.audio.newMusic(Gdx.files.internal("GameStateMusic/outsideambience.mp3"));
@@ -351,6 +353,8 @@ public class GameState extends State{
             if (entry(HouseState.class, 134 + (HOUSE_WIDTH / 2), 560, 8, 16)){
                 openHouseDoor.play();
             }
+        } else if (player.collidesUp(houseDoor)){
+            stage.addActor(houseNeedsKeyText);
         }
 
 
@@ -393,6 +397,9 @@ public class GameState extends State{
 
         if (!exitOpen && player.collidesUp(fenceExit)){
             stage.addActor(exitFenceText);
+        }
+        if (player.checkInventory(3) == 1){
+            houseLocked = false;
         }
     }
 
@@ -648,7 +655,7 @@ public class GameState extends State{
         bounds.add(new Rectangle(1055, 435, 50, 192)); // above log bridge
         bounds.add(new Rectangle(1055, 390, 50, 10)); //below log bridge
         bounds.add(new Rectangle(150, 560, HOUSE_WIDTH - 16, HOUSE_HEIGHT)); // House
-        bounds.add(new Rectangle(130 + (HOUSE_WIDTH / 2), 560, 8,16)); // House door
+        bounds.add(new Rectangle(houseDoor));
         bounds.add(new Rectangle(1200, 0, 16, HorrorMain.HEIGHT)); // End bridge
         bounds.add(new Rectangle(568, 228, BUNKER_WIDTH - 48, BUNKER_HEIGHT/2f)); // Bunker
 
