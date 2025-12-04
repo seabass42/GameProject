@@ -59,6 +59,9 @@ public class LoadingState extends State {
         manager.load("Bunker/Bunker.png", Texture.class);
         manager.load("Bunker/BunkerMainArea.jpeg", Texture.class);
         manager.load("Bunker/BunkerRoom2.jpeg", Texture.class);
+        manager.load("Bunker/BunkerDoor(sh2).mp3", Sound.class);
+        manager.load("Bunker/KeyCollected.mp3", Sound.class);
+
     }
 
     @Override
@@ -83,8 +86,8 @@ public class LoadingState extends State {
         if(manager.update() && timer >= 1f) {
             manager.finishLoading();
            // gsm.set(new HouseState(gsm, manager, GameState.player)); // Straight to house for testing
-            gsm.set(new BunkerState(gsm, manager, GameState.player));
-           // gsm.set(new GameState(gsm,manager));
+           // gsm.set(new BunkerState(gsm, manager, GameState.player));
+            gsm.set(new GameState(gsm,manager));
         }
 
         int percent = (int)(manager.getProgress() * 100);

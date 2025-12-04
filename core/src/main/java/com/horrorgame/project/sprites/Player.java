@@ -88,10 +88,10 @@ public class Player extends PhysicsSprite {
         hitboxUp = new Rectangle(x+5,y+height/2,width-10,height/2);
         hitboxDown = new Rectangle(x+5,y-height/2,width-10,height/2);
 
-        inventory = new int[2];
+        inventory = new int[4];
         inventory[0] = 0;
 
-        // Inventory key: 0 = flashlight, 1 = wire cutters
+        // Inventory key: 0 = flashlight, 1 = wire cutters, 2 = crowbar, 3 = house key
     }
     //  Check if player is colliding with something
     public boolean collidesLeft(Rectangle rect){return hitboxLeft.overlaps(rect);}

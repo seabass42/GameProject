@@ -298,12 +298,12 @@ public class GameState extends State{
         //THE HAUNTING EYES MIRAGE (still working on them)
         eyesMirageUpdate();
         //HOUSE
+        entry(BunkerState.class,600, 228, 48, 32);
         if (!houseLocked) {
-            if (entry(new HouseState(gsm, manager, player), 134 + (HOUSE_WIDTH / 2), 560, 8, 16)){
+            if (entry(HouseState.class, 134 + (HOUSE_WIDTH / 2), 560, 8, 16)){
                 openHouseDoor.play();
             }
         }
-        entry(new BunkerState(gsm, manager, player),600, 228, 48, 32);
 
 
         if (player.collidesRight(lakeRange1)){
@@ -567,10 +567,17 @@ public class GameState extends State{
         camera.viewportWidth = width;
         camera.viewportHeight = height;
     }
-    private boolean entry(State state, int x, int y, int width, int height){ // If rectangle is an entry point (16w x 16h), push requested state
+    private boolean entry(Class<? extends State> stateClass, int x, int y, int width, int height){ // If rectangle is an entry point (16w x 16h), push requested state
         if (player.collidesUp(new Rectangle(x,y, width, height))){
             ambience.pause();
-            gsm.push(state);
+            try {
+                State newState = stateClass
+                    .getConstructor(GameStateManager.class, AssetManager.class, Player.class)
+                    .newInstance(gsm, manager, player);
+                gsm.push(newState);
+            } catch (Exception e){
+                e.printStackTrace();
+            }
             return true;
         }
         return false;

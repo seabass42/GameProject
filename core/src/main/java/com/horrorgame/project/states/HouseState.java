@@ -92,7 +92,7 @@ public class HouseState extends State{
         });
 
 
-        //stage.setDebugAll(true);
+       // stage.setDebugAll(true);
         stage.addActor(proceedToRoom2);
         stage.addActor(collectItem);
         doorHoverPrompt = new Label("Enter?", skin);
