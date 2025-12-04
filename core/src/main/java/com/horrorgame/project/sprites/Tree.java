@@ -17,7 +17,7 @@ public class Tree extends PhysicsSprite{
         setOriginCenter();
         setCircleFixture(width/3);
         body.setFixedRotation(true);
-        body.setTransform(x+width/2, y+width/2-2, 0);
+        //body.setTransform(x+width/2, y+width/2-2, 0);
         leaves = new Sprite(new Texture("assets/sprites/Trees/tree" + (int)(random.nextInt(4)+1) + ".png"));
         leaves.setOriginCenter();
         leaves.setScale(0.3f);
@@ -26,12 +26,14 @@ public class Tree extends PhysicsSprite{
     public float getBodyHeight(){
         return super.getBodyWidth();
     }
+    public void update(){
+        super.update();
+        setPosition(body.getPosition().x-width/2, body.getPosition().y-width/2+2);
+    }
 
     public void render(SpriteBatch sb) {
         super.render(sb);
         leaves.setPosition(body.getPosition().x-200, body.getPosition().y-130);
-        System.out.println(body.getPosition().x + " " + body.getPosition().y+ "        " +leaves.getX() + " " + leaves.getY());
-        System.out.println(leaves.getHeight());
         leaves.draw(sb);
     }
 }

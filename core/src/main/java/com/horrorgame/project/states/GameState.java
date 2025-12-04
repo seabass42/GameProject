@@ -10,6 +10,7 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
@@ -65,18 +66,18 @@ public class GameState extends State{
 
     private ArrayList<PhysicsSprite> physicsSprites = new ArrayList<>();
     private static Ball ball;
-    private static Log log;
-    private static Log log2;
+    private static Log log, sign;
     public static Player player;
-    private static Eye leftEye;
-    private static Eye rightEye;
+    private static Eye leftEye, rightEye;
     private static Texture eyesTexture;
+    private static Sprite pupil = new Sprite(new Texture("assets/sprites/pupil.png"));;
     private Sound eyeSound, jumpScare, openHouseDoor;
     private final Vector2 cameraTarget = new Vector2();
 
     //Trees
-    private Random random = new Random();
-    private static Tree[] tree = new Tree[15];
+    private Random random = new Random(45);
+    private static ArrayList<Tree> trees = new ArrayList<>();
+    private static ArrayList<Tree> trees2 = new ArrayList<>();
 
     //private SpriteBatch batch;
     public static OrthographicCamera camera = new OrthographicCamera();
@@ -85,9 +86,16 @@ public class GameState extends State{
     private RayHandler rayHandler = new RayHandler(world);
     private PointLight ambientLight;
 
+
+    //Flashlight
+    private Texture flashlightObj = new Texture(Gdx.files.internal("assets/sprites/flashlight.png"));
     private ConeLight flashlight;
     private Boolean flashOn = false;
     private Sound flashlight_click, light_hum;
+
+    private Texture crowbar = new Texture(Gdx.files.internal("assets/sprites/crowbar.png"));
+    private Texture streetLight = new Texture(Gdx.files.internal("assets/sprites/streetLight.png"));
+    private ConeLight streetlight;
 
     private Music ambience, lakeAmbience;
     private Rectangle lakeRange1 = new Rectangle(816, 0, 96, HorrorMain.HEIGHT);
@@ -110,10 +118,16 @@ public class GameState extends State{
 
     private RPGText introText, houseLockedText, exitFenceText;
     private Rectangle fenceExit;
+    Label hint;
+    private boolean gaveHint = false;
+    private boolean gaveHintSign = false;
+    private int hintOn = 0;
+
     //Player capabilities
     //Log Bridge
     private boolean logBridge = false;
-
+    private Texture waterlog;
+    int seed = 0;
 
     public GameState(GameStateManager gsm, AssetManager manager){
         super(gsm);
@@ -126,6 +140,7 @@ public class GameState extends State{
         Texture tex = fbo.getColorBufferTexture();
         tex.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
         tex.setWrap(Texture.TextureWrap.ClampToEdge, Texture.TextureWrap.ClampToEdge);
+
 
         //Shaders
         crtShaderProgram.pedantic = false;
@@ -143,16 +158,16 @@ public class GameState extends State{
         physicsSprites.add(player);
 
         ball = new Ball("ball", new Texture("assets/sprites/ball.png"),
-            HorrorMain.WIDTH/2, (HorrorMain.HEIGHT/2-100),10, false);
+            HorrorMain.WIDTH/2, (HorrorMain.HEIGHT/2-100),6, false);
         physicsSprites.add(ball);
 
-        log = new Log("log", new Texture("assets/sprites/log.png"),
-            HorrorMain.WIDTH/3, HorrorMain.HEIGHT/3, 60, 20, false);
-        physicsSprites.add(log);
+        sign = new Log("sign", new Texture("assets/sprites/funSign.png"),
+        HorrorMain.WIDTH/3-200, HorrorMain.HEIGHT/3-150, 40,14, true);
+        physicsSprites.add(sign);
 
-        log2 = new Log("log2", new Texture("assets/sprites/log.png"),
-            HorrorMain.WIDTH/3+50, HorrorMain.HEIGHT/3-100, 60, 20, false);
-        physicsSprites.add(log2);
+        log = new Log("log", new Texture("assets/sprites/log.png"),
+            HorrorMain.WIDTH/3-120, HorrorMain.HEIGHT/3, 60, 20, false);
+        physicsSprites.add(log);
 
         leftEye = new Eye(HorrorMain.WIDTH / 2 - 50, HorrorMain.HEIGHT / 2);
         physicsSprites.add(leftEye);
@@ -160,10 +175,15 @@ public class GameState extends State{
         physicsSprites.add(rightEye);
 
         //TREES
-        for(int i = 0; i < tree.length; i++) {
-            tree[i] = new Tree("tree", HorrorMain.WIDTH / 2 - random.nextInt(600), HorrorMain.HEIGHT / 2 - random.nextInt(300));
-            physicsSprites.add(tree[i]);
+        for(int i = 0; i < 30; i++) {   //Bottom Trees
+            trees.add(new Tree("tree" + i, HorrorMain.WIDTH/2+200 - random.nextInt(700), HorrorMain.HEIGHT / 2 - random.nextInt(300)));
         }
+        trees.sort((a, b) -> Float.compare(b.getPosition().y, a.getPosition().y));
+
+        for(int i = 0; i < 14; i++) {   //Top Trees
+            trees2.add(new Tree("tree" + i, HorrorMain.WIDTH/2+250 - random.nextInt(600), HorrorMain.HEIGHT / 2+250 - random.nextInt(70)));
+        }
+        trees2.sort((a, b) -> Float.compare(b.getPosition().y, a.getPosition().y));
 
         eyeSound = manager.get("sounds/gnid.ogg", Sound.class);
         eyesTexture = new Texture("assets/eyes.jpg");
@@ -188,6 +208,8 @@ public class GameState extends State{
         ambientLight = new PointLight(rayHandler, 500, Color.GRAY, 130, player.getPosition().x, player.getPosition().y);
         ambientLight.setXray(true);
 
+        streetlight = new ConeLight(rayHandler, 1000, Color.GOLD, 130, 1180, 515, 260, 15);
+
         tileset = new Texture("TileAssets/Tileset.png");
         tileSize = 16;
         tiles = TextureRegion.split(tileset, tileSize, tileSize);
@@ -204,6 +226,8 @@ public class GameState extends State{
         lakeAmbience = Gdx.audio.newMusic(Gdx.files.internal("GameStateMusic/lakeambience.mp3"));
         lakeAmbience.setVolume(0.3f);
 
+        hint = new Label("", textSkin);
+        hint.setFontScale(0.2f);
 
     }
 
@@ -217,6 +241,15 @@ public class GameState extends State{
         //Debug
         if(Gdx.input.isKeyPressed(Input.Keys.NUM_2) && Gdx.input.isKeyJustPressed(Input.Keys.EQUALS)){
             setDebugMode();
+        }
+        if(debugMode && Gdx.input.isKeyJustPressed(Input.Keys.K)){
+            seed++;
+            random = new Random(seed);
+            for(Tree tree : trees) {
+                tree.getBody().setTransform(HorrorMain.WIDTH /2 + 200 - random.nextInt(700), HorrorMain.HEIGHT / 2 - random.nextInt(300),0);
+            }
+            trees.sort((a, b) -> Float.compare(b.getPosition().y, a.getPosition().y));
+            System.out.println(seed);
         }
 
         //Flashlight
@@ -287,8 +320,13 @@ public class GameState extends State{
         }
 
         ball.update();
-        log.update();
-        log2.update();
+        if(log!=null) log.update();
+        for(Tree tree : trees){
+            tree.update();
+        }
+        for(Tree tree : trees2){
+            tree.update();
+        }
         if(leftEye != null && rightEye != null) {
             leftEye.update();
             rightEye.update();
@@ -327,12 +365,30 @@ public class GameState extends State{
             lakeAmbience.pause();
         }
 
-        if(player.getPosition().x > 1190 && !logBridge) {
-            player.getBody().setTransform(1190, player.getPosition().y, 0);
+        //LOG BRIDGE
+        if(player.getPosition().x > 1050 && !logBridge) {
+            player.getBody().setTransform(1050, player.getPosition().y, 0);
+            if(!gaveHint) {
+                stage.addActor(new RPGText("Need something to get across...", textSkin));
+                gaveHint = true;
+            }
         }
-        if(log.getPosition().x > 1220 && log.getPosition().y > 400){
+        if(log!=null&&log.getPosition().x > 1070 && log.getPosition().y > 350){
+            log.getBody().setTransform(-1000, -1000, 0);
+            physicsSprites.remove(log);
+            log = null;
             System.out.println("Hello");
             logBridge = true;
+            waterlog = new Texture(Gdx.files.internal("assets/sprites/logBridge.png"));
+        }
+        if(logBridge && player.getPosition().x > 1150 && player.checkInventory(1) != 1){
+            hint.setPosition(1150, 390);
+            hint.setText("'F' to equip");
+            if(Gdx.input.isKeyJustPressed(Input.Keys.F)){   // F to equip flashlight
+                player.setItem(1, 1);
+                hint.setText("");
+                crowbar = null;
+            }
         }
 
         if (!exitOpen && player.collidesUp(fenceExit)){
@@ -349,6 +405,20 @@ public class GameState extends State{
     }
     //updates flashlight
     private void flashlightUpdate(){
+        if(player.getPosition().x < HorrorMain.WIDTH/2-30
+            && player.getPosition().x > HorrorMain.WIDTH/2-58
+            && player.getPosition().y < HorrorMain.HEIGHT/2-170
+            && player.getPosition().y > HorrorMain.HEIGHT/2-200
+        && player.checkInventory(0) != 1)
+        {
+            hint.setPosition(HorrorMain.WIDTH/2-58, HorrorMain.HEIGHT/2-180);
+            hint.setText("'F' to equip");
+            if(Gdx.input.isKeyJustPressed(Input.Keys.F)){   // F to equip flashlight
+                player.setItem(0, 1);
+                hint.setText("");
+                flashlightObj = null;
+            }
+        }
         if(flashOn) {
             //player.setDirection(cursorPosition.x <= player.getPosition().x);
 
@@ -395,9 +465,15 @@ public class GameState extends State{
         mapDrawer.render(sb);
         sb.draw(house, 144, 544, HOUSE_WIDTH, HOUSE_HEIGHT);
         sb.draw(bunker, 544, 192, BUNKER_WIDTH, BUNKER_HEIGHT);
+        if(waterlog!=null) sb.draw(waterlog, 1055, 390, 50, 20);
+        sb.draw(streetLight, 1170, 440,streetLight.getWidth()/1.2f,streetLight.getHeight()/1.2f);
         if(!debugMode) {
             for(PhysicsSprite sprite : physicsSprites) {
                 sprite.render(sb);
+            }
+
+            for(Tree tree : trees) {
+                tree.render(sb);
             }
         }
         if (!exitOpen) {
@@ -405,7 +481,15 @@ public class GameState extends State{
         } else {
             finalMapDrawer.render(sb);
         }
+        mapDrawer2.render(sb);
+        for(Tree tree : trees2) {
+            tree.render(sb);
+        }
         eyesMirageRender(sb);
+        if(flashlightObj!= null) sb.draw(flashlightObj,HorrorMain.WIDTH/2-50, HorrorMain.HEIGHT/2-190, 7, 21);
+        if(crowbar!=null) sb.draw(crowbar, 1150, 400, crowbar.getWidth()/12, crowbar.getHeight()/12);
+        hint.draw(sb, 1f);
+        pupil.draw(sb);
         sb.end();
         fbo.end();
 
@@ -481,11 +565,32 @@ public class GameState extends State{
                 s.render(sb);
                 label.draw(sb, 1f);
             }
+            for(Tree tree : trees) {
+                Label label = tree.getLabel();
+                label.setPosition(
+                    tree.getBody().getPosition().x - tree.getBodyWidth() / 2f,
+                    tree.getBody().getPosition().y
+                );
+                label.setFontScale(0.3f);
+                tree.render(sb);
+                label.draw(sb, 1f);
+            }
+            for(Tree tree : trees2) {
+                Label label = tree.getLabel();
+                label.setPosition(
+                    tree.getBody().getPosition().x - tree.getBodyWidth() / 2f,
+                    tree.getBody().getPosition().y
+                );
+                label.setFontScale(0.3f);
+                tree.render(sb);
+                label.draw(sb, 1f);
+            }
 
             Label debugInfo = new Label("Press '2' and '=' to exit debugMode", textSkin);
             debugInfo.setFontScale(0.2f);
             debugInfo.setPosition(camera.position.x - 157, camera.position.y + 70);
             debugInfo.draw(sb, 1f);
+
             sb.end();
 
             // ---- DRAW PHYSICS OUTLINES ----
@@ -502,6 +607,13 @@ public class GameState extends State{
                 float y = s.getBody().getPosition().y - s.getBodyHeight() / 2f;
                 float w = s.getBodyWidth();
                 float h = s.getBodyHeight();
+                shapeRenderer.rect(x, y, w, h);
+            }
+            for(Tree tree : trees) {
+                float x = tree.getBody().getPosition().x - tree.getBodyWidth() / 2f;
+                float y = tree.getBody().getPosition().y - tree.getBodyHeight() / 2f;
+                float w = tree.getBodyWidth();
+                float h = tree.getBodyHeight();
                 shapeRenderer.rect(x, y, w, h);
             }
             shapeRenderer.setColor(Color.GREEN);
@@ -531,8 +643,10 @@ public class GameState extends State{
         bounds.add(new Rectangle(80, (HorrorMain.HEIGHT - 80), 448, 64)); // top left
         bounds.add(new Rectangle(656, (HorrorMain.HEIGHT - 80) , 368, 64)); // top right
         bounds.add(new Rectangle(848, 80, 128, 80)); // lower right corner
-        bounds.add(new Rectangle(992, 160, 192, 224));  // under bridge
-        bounds.add(new Rectangle(992, 464, 192, 208)); // above bridge
+        bounds.add(new Rectangle(992, 160, 200, 224));  // under bridge
+        bounds.add(new Rectangle(992, 464, 200, 208)); // above bridge
+        bounds.add(new Rectangle(1055, 435, 50, 192)); // above log bridge
+        bounds.add(new Rectangle(1055, 390, 50, 10)); //below log bridge
         bounds.add(new Rectangle(150, 560, HOUSE_WIDTH - 16, HOUSE_HEIGHT)); // House
         bounds.add(new Rectangle(130 + (HOUSE_WIDTH / 2), 560, 8,16)); // House door
         bounds.add(new Rectangle(1200, 0, 16, HorrorMain.HEIGHT)); // End bridge
@@ -542,7 +656,19 @@ public class GameState extends State{
     }
 
     public void eyesMirageUpdate(){
-        if(doJumpScares && player.tiredCount == 5 && player.isTired) {
+        if(player.getPosition().dst(sign.getPosition()) < 45f){
+            pupil.setSize(100,100);
+            tiredShaderIntensity = player.getPosition().dst(sign.getPosition());
+            pupil.setPosition(cursorPosition.x-50, cursorPosition.y-50);
+            if(!gaveHintSign){
+                stage.addActor(new RPGText("Deep breaths...", textSkin));
+                gaveHintSign = true;
+            }
+        }else if(gaveHintSign){
+            gaveHintSign = false;
+            pupil.setPosition(-1000,-1000);
+        }
+        if(doJumpScares && player.tiredCount == 3 && player.isTired) {
             if(flashOn && player.getAngleBetweenObj(cursorPosition) < player.getAngleBetweenObj(leftEye.getPosition())+45
                 && player.getAngleBetweenObj(cursorPosition) > player.getAngleBetweenObj(rightEye.getPosition())-45) {
                 flashlight.setColor(Color.WHITE);

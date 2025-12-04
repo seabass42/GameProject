@@ -165,7 +165,7 @@ public class Player extends PhysicsSprite {
             }
         } else if (stamina < 1f) {
             // Recover stamina when not running
-            if(tiredCount == 5) {RECOVERY_TIME =20;}
+            if(tiredCount == 3) {RECOVERY_TIME =20;}
             stamina += dt / RECOVERY_TIME;
             if (stamina >= 1f) {
                 stamina = 1f;
