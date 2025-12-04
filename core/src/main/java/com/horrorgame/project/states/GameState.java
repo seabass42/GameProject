@@ -123,6 +123,7 @@ public class GameState extends State{
         tex.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
         tex.setWrap(Texture.TextureWrap.ClampToEdge, Texture.TextureWrap.ClampToEdge);
 
+
         //Shaders
         crtShaderProgram.pedantic = false;
         monochromeShaderProgram.pedantic = false;
@@ -272,10 +273,7 @@ public class GameState extends State{
                     player.getBody().setTransform(player.getPosition().x, bound.y + bound.height + player.getHeight()/2, 0);
                     player.setVelocity(player.getVelX(), 0);
             }
-                shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-                shapeRenderer.setColor(Color.RED);
-                shapeRenderer.rect(bound.x, bound.y, bound.width, bound.height);
-                shapeRenderer.end();
+
         }
 
         ball.update();
@@ -381,7 +379,7 @@ public class GameState extends State{
         // Draw world
         mapDrawer.render(sb);
         sb.draw(house, 144, 544, HOUSE_WIDTH, HOUSE_HEIGHT);
-       // sb.draw(bunker, 544, 192, BUNKER_WIDTH, BUNKER_HEIGHT);
+        sb.draw(bunker, 544, 192, BUNKER_WIDTH, BUNKER_HEIGHT);
         if(!debugMode) {
             for(PhysicsSprite sprite : physicsSprites) {
                 sprite.render(sb);
@@ -519,6 +517,7 @@ public class GameState extends State{
         bounds.add(new Rectangle(150, 560, HOUSE_WIDTH - 16, HOUSE_HEIGHT)); // House
         bounds.add(new Rectangle(130 + (HOUSE_WIDTH / 2), 560, 8,16)); // House door
         bounds.add(new Rectangle(1200, 0, 16, HorrorMain.HEIGHT)); // End bridge
+        bounds.add(new Rectangle(568, 228, BUNKER_WIDTH - 48, BUNKER_HEIGHT/2f)); // Bunker
 
         bounds.add(new Rectangle(544, HorrorMain.HEIGHT - 80, 96, 32)); // EXIT (MUST be last)
     }
